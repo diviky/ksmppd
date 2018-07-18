@@ -108,7 +108,7 @@ void smpp_http_queued_route_destroy(SMPPHTTPQueuedRoute *smpp_http_queued_route)
     gw_free(smpp_http_queued_route); 
 }
 
-SMPPESMEAuthResult *smpp_http_client_auth(SMPPServer *smpp_server, Octstr *system_id, Octstr *password) {
+SMPPESMEAuthResult *smpp_http_client_auth(SMPPServer *smpp_server, Octstr *system_id, Octstr *password, Octstr *ip) {
     HTTPCaller *caller = http_caller_create();
     
     SMPPESMEAuthResult *res = NULL;
@@ -116,6 +116,7 @@ SMPPESMEAuthResult *smpp_http_client_auth(SMPPServer *smpp_server, Octstr *syste
     List *request_headers = http_create_empty_headers();
     http_header_add(request_headers, SMPP_HTTP_HEADER_PREFIX "system-id", octstr_get_cstr(system_id));
     http_header_add(request_headers, SMPP_HTTP_HEADER_PREFIX "password", octstr_get_cstr(password));
+    http_header_add(request_headers, SMPP_HTTP_HEADER_PREFIX "ip", octstr_get_cstr(ip));
     
     http_start_request(caller, HTTP_METHOD_GET, smpp_server->auth_url, request_headers, NULL, 0, NULL, NULL);
     
