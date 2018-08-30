@@ -97,12 +97,16 @@ SMPPPlugin *smpp_plugin_create() {
     smpp_plugin->shutdown = NULL;
     smpp_plugin->args = NULL;
     smpp_plugin->id = NULL;
+    smpp_plugin->handle = NULL;
     return smpp_plugin;
 }
 
 void smpp_plugin_destroy_real(SMPPPlugin *smpp_plugin) {
     octstr_destroy(smpp_plugin->args);
     octstr_destroy(smpp_plugin->id);
+    if(smpp_plugin->handle){
+	    dlclose(smpp_plugin->handle);
+    }
     gw_free(smpp_plugin);
 }
 
@@ -156,7 +160,9 @@ found:
                 error(0, "Error opening '%s' for plugin '%s' (%s)", octstr_get_cstr(path), octstr_get_cstr(id), error_str);
                 goto error;
 
-            }
+            }else{
+		smpp_plugin->handle = lib;
+	    }
 
             error_str = dlerror();
             if (error_str != NULL) {
@@ -169,9 +175,10 @@ found:
                 smpp_plugin->init = dlsym(lib, octstr_get_cstr(tmp));
                 if (!smpp_plugin->init) {
                     panic(0, "init-function %s unable to load from %s", octstr_get_cstr(tmp), octstr_get_cstr(path));
-                }
-                smpp_plugin->args = cfg_get(grp, octstr_imm("args"));
-                result = smpp_plugin->init(smpp_plugin);
+		}else{
+		    smpp_plugin->args = cfg_get(grp, octstr_imm("args"));
+		    result = smpp_plugin->init(smpp_plugin);
+		}
             } else {
                 result = 1;
             }

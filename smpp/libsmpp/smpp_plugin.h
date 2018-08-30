@@ -84,6 +84,7 @@ extern "C" {
         void (*reload)(SMPPPlugin *smpp_plugin);
         void (*shutdown)(SMPPPlugin *smpp_plugin);
         void *context;
+        void *handle;
     };
     
     SMPPPlugin *smpp_plugin_init(SMPPServer *smpp_server, Octstr *id);
