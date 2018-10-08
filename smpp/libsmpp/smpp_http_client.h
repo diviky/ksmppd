@@ -70,7 +70,7 @@ extern "C" {
 #define SMPP_HTTP_HEADER_PREFIX "X-KSMPPD-"
 #define HTTP_DEFAULT_MAX_OUTSTANDING 512
 
-    SMPPESMEAuthResult *smpp_http_client_auth(SMPPServer *smpp_server, Octstr *system_id, Octstr *password);
+    SMPPESMEAuthResult *smpp_http_client_auth(SMPPServer *smpp_server, Octstr *system_id, Octstr *password, Octstr *ip);
     void smpp_http_client_route_init(SMPPServer *smpp_server);
 
 #ifdef __cplusplus

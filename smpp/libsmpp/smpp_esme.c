@@ -436,7 +436,7 @@ SMPPESMEAuthResult *smpp_esme_auth(SMPPServer *smpp_server, Octstr *system_id, O
     if(smpp_server->authentication_method == SMPP_SERVER_AUTH_METHOD_DATABASE) {
         smpp_auth_result = smpp_database_auth(smpp_server, system_id, password);
     } else if(smpp_server->authentication_method == SMPP_SERVER_AUTH_METHOD_HTTP) {
-        smpp_auth_result = smpp_http_client_auth(smpp_server, system_id, password);
+        smpp_auth_result = smpp_http_client_auth(smpp_server, system_id, password, smpp_esme->ip);
     } else if(smpp_server->authentication_method == SMPP_SERVER_AUTH_METHOD_PLUGIN) {
         if(smpp_server->plugin_auth) {
             info(0, "Authenticating via plugin %s", octstr_get_cstr(smpp_server->plugin_auth->id));
