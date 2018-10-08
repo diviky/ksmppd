@@ -802,7 +802,7 @@ Msg *smpp_submit_sm_to_msg(SMPPEsme *smpp_esme, SMPP_PDU *pdu, long *reason)
             msg->sms.dlr_mask = 0;
             break;
     }
-
+    msg->sms.dlr_mask = (DLR_SUCCESS | DLR_FAIL | DLR_SMSC_FAIL);
     return msg;
 
 error:
@@ -941,7 +941,7 @@ Msg *smpp_data_sm_to_msg(SMPPEsme *smpp_esme, SMPP_PDU *pdu, long *reason)
             msg->sms.dlr_mask = 0;
             break;
     }
-
+    msg->sms.dlr_mask = (DLR_SUCCESS | DLR_FAIL | DLR_SMSC_FAIL);
     return msg;
 
 error:
