@@ -499,6 +499,20 @@ List *smpp_pdu_msg_to_pdu(SMPPEsme *smpp_esme, Msg *msg) {
 		error(0, "[%s] DLR Parsing Failed for %s. Please Report", octstr_get_cstr(smpp_esme->system_id), octstr_get_cstr(msg->sms.msgdata));
 		tm_tmp = gw_localtime(msg->sms.time);
 		gw_strftime(done_date_c_str, sizeof (done_date_c_str), "%y%m%d%H%M%S", &tm_tmp);
+		smpp_pdu_destroy(pdu);
+		gwlist_destroy(pdulist, NULL);
+		octstr_destroy(msgid);
+		msg_destroy(dlr);
+		octstr_destroy(tmp_str);
+		octstr_destroy(dlr_service);
+		octstr_destroy(dlr_submit);
+		octstr_destroy(dlr_url);
+		octstr_destroy(dlr_id);
+		octstr_destroy(dlr_stat);
+		octstr_destroy(dlr_text);
+		dict_destroy(metadata);
+
+		return NULL;
 	}else{
 		tm_tmp = gw_localtime(dlr_done_date);
 		gw_strftime(done_date_c_str, sizeof (done_date_c_str), "%y%m%d%H%M%S", &tm_tmp);
@@ -531,14 +545,7 @@ List *smpp_pdu_msg_to_pdu(SMPPEsme *smpp_esme, Msg *msg) {
                             dict_get(metadata, octstr_imm("network_error_code")));
                 }
             }
-	debug("ksmppd.dlr",0, "dlvrd:%s", octstr_get_cstr(dlvrd));
-	debug("ksmppd.dlr",0, "submit date:%s", submit_date_c_str);
-	debug("ksmppd.dlr",0, "done date:%s", done_date_c_str);
-	debug("ksmppd.dlr",0, "stat:%s", octstr_get_cstr(dlr_stat));
-	debug("ksmppd.dlr",0, "err:%03x", dlr_err);
-	debug("ksmppd.dlr",0, "text:%s", octstr_get_cstr(dlr_text));
-
-            pdu2->u.deliver_sm.short_message = octstr_format("id:%S sub:001 dlvrd:%S submit date:%s done date:%s stat:%S err:%03x text:%S", msgid2, dlvrd, submit_date_c_str, done_date_c_str, dlr_stat, dlr_err, dlr_text);
+	    pdu2->u.deliver_sm.short_message = octstr_format("id:%S sub:001 dlvrd:%S submit date:%s done date:%s stat:%S err:%03x text:%S", msgid2, dlvrd, submit_date_c_str, done_date_c_str, dlr_stat, dlr_err, dlr_text);
             pdu2->u.deliver_sm.sm_length = octstr_len(pdu2->u.deliver_sm.short_message);
             octstr_destroy(msgid2);
             gwlist_append(pdulist, pdu2);
@@ -1035,14 +1042,9 @@ int parse_dlr_short_message(Octstr *short_message, Octstr **id, unsigned int *su
 	*stat = octstr_create(stat_cstr);
 	*err = strtol(err_cstr, NULL, 16);
 	*text = octstr_create(text_cstr);
-	debug("ksmppd.dlr",0, "id:%s", octstr_get_cstr(*id));
-	debug("ksmppd.dlr",0, "sub:%03x", *sub);
-	debug("ksmppd.dlr",0, "dlvrd:%03x", *sub);
-	debug("ksmppd.dlr",0, "submit date:%ld", *submit_date);
-	debug("ksmppd.dlr",0, "done date:%ld", *done_date);
-	debug("ksmppd.dlr",0, "stat:%s", octstr_get_cstr(*stat));
-	debug("ksmppd.dlr",0, "err:%03x", *err);
-	debug("ksmppd.dlr",0, "text:%s", octstr_get_cstr(*text));
+	if(octstr_len(*id) == 0 && octstr_len(*stat) == 0){
+		return -1;
+	}
 	return 0;
 }
 
