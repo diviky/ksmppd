@@ -1,0 +1,208 @@
+MEMCHECK FIXES
+==================
+==27289== 
+==27289== HEAP SUMMARY:
+==27289==     in use at exit: 130,840 bytes in 19 blocks
+==27289==   total heap usage: 1,717,156 allocs, 1,717,137 frees, 3,244,275,204 bytes allocated
+==27289== 
+==27289== 32 bytes in 1 blocks are still reachable in loss record 1 of 19
+==27289==    at 0x4C2DB8F: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==27289==    by 0x5257E77: CRYPTO_malloc (in /lib/x86_64-linux-gnu/libcrypto.so.1.0.0)
+==27289==    by 0x530EC7E: sk_new (in /lib/x86_64-linux-gnu/libcrypto.so.1.0.0)
+==27289==    by 0x567D4E9: ??? (in /lib/x86_64-linux-gnu/libssl.so.1.0.0)
+==27289==    by 0x567F5E8: SSL_COMP_get_compression_methods (in /lib/x86_64-linux-gnu/libssl.so.1.0.0)
+==27289==    by 0x5684D72: SSL_library_init (in /lib/x86_64-linux-gnu/libssl.so.1.0.0)
+==27289==    by 0x459C8D: conn_init_ssl (conn.c:1330)
+==27289==    by 0x473D66: http_init (http.c:3580)
+==27289==    by 0x44DCFF: gwlib_init (gwlib.c:87)
+==27289==    by 0x405837: main (ksmppd.c:152)
+==27289== 
+==27289== 32 bytes in 1 blocks are still reachable in loss record 2 of 19
+==27289==    at 0x4C2DB8F: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==27289==    by 0x5257E77: CRYPTO_malloc (in /lib/x86_64-linux-gnu/libcrypto.so.1.0.0)
+==27289==    by 0x530EC9C: sk_new (in /lib/x86_64-linux-gnu/libcrypto.so.1.0.0)
+==27289==    by 0x567D4E9: ??? (in /lib/x86_64-linux-gnu/libssl.so.1.0.0)
+==27289==    by 0x567F5E8: SSL_COMP_get_compression_methods (in /lib/x86_64-linux-gnu/libssl.so.1.0.0)
+==27289==    by 0x5684D72: SSL_library_init (in /lib/x86_64-linux-gnu/libssl.so.1.0.0)
+==27289==    by 0x459C8D: conn_init_ssl (conn.c:1330)
+==27289==    by 0x473D66: http_init (http.c:3580)
+==27289==    by 0x44DCFF: gwlib_init (gwlib.c:87)
+==27289==    by 0x405837: main (ksmppd.c:152)
+==27289== 
+==27289== 40 bytes in 1 blocks are still reachable in loss record 3 of 19
+==27289==    at 0x4C2DB8F: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==27289==    by 0x4564D0: gw_native_malloc (gwmem-native.c:87)
+==27289==    by 0x465513: dict_create (dict.c:197)
+==27289==    by 0x424551: smpp_pdu_init (smpp_pdu.c:194)
+==27289==    by 0x40921F: smpp_server_reconfigure (smpp_server.c:177)
+==27289==    by 0x40593A: main (ksmppd.c:171)
+==27289== 
+==27289== 40 bytes in 1 blocks are still reachable in loss record 4 of 19
+==27289==    at 0x4C2DB8F: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==27289==    by 0x4564D0: gw_native_malloc (gwmem-native.c:87)
+==27289==    by 0x465513: dict_create (dict.c:197)
+==27289==    by 0x424567: smpp_pdu_init (smpp_pdu.c:195)
+==27289==    by 0x40921F: smpp_server_reconfigure (smpp_server.c:177)
+==27289==    by 0x40593A: main (ksmppd.c:171)
+==27289== 
+==27289== 40 bytes in 1 blocks are still reachable in loss record 5 of 19
+==27289==    at 0x4C2DB8F: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==27289==    by 0x4564D0: gw_native_malloc (gwmem-native.c:87)
+==27289==    by 0x465513: dict_create (dict.c:197)
+==27289==    by 0x42457D: smpp_pdu_init (smpp_pdu.c:196)
+==27289==    by 0x40921F: smpp_server_reconfigure (smpp_server.c:177)
+==27289==    by 0x40593A: main (ksmppd.c:171)
+==27289== 
+==27289== 56 bytes in 1 blocks are still reachable in loss record 6 of 19
+==27289==    at 0x4C2DB8F: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==27289==    by 0x4564D0: gw_native_malloc (gwmem-native.c:87)
+==27289==    by 0x45C57A: mutex_create_real (thread.c:82)
+==27289==    by 0x45F6E1: gwlist_create_real (list.c:136)
+==27289==    by 0x424533: smpp_pdu_init (smpp_pdu.c:193)
+==27289==    by 0x40921F: smpp_server_reconfigure (smpp_server.c:177)
+==27289==    by 0x40593A: main (ksmppd.c:171)
+==27289== 
+==27289== 56 bytes in 1 blocks are still reachable in loss record 7 of 19
+==27289==    at 0x4C2DB8F: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==27289==    by 0x4564D0: gw_native_malloc (gwmem-native.c:87)
+==27289==    by 0x45C57A: mutex_create_real (thread.c:82)
+==27289==    by 0x45F6F2: gwlist_create_real (list.c:137)
+==27289==    by 0x424533: smpp_pdu_init (smpp_pdu.c:193)
+==27289==    by 0x40921F: smpp_server_reconfigure (smpp_server.c:177)
+==27289==    by 0x40593A: main (ksmppd.c:171)
+==27289== 
+==27289== 56 bytes in 1 blocks are still reachable in loss record 8 of 19
+==27289==    at 0x4C2DB8F: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==27289==    by 0x4564D0: gw_native_malloc (gwmem-native.c:87)
+==27289==    by 0x45C57A: mutex_create_real (thread.c:82)
+==27289==    by 0x465558: dict_create (dict.c:207)
+==27289==    by 0x424551: smpp_pdu_init (smpp_pdu.c:194)
+==27289==    by 0x40921F: smpp_server_reconfigure (smpp_server.c:177)
+==27289==    by 0x40593A: main (ksmppd.c:171)
+==27289== 
+==27289== 56 bytes in 1 blocks are still reachable in loss record 9 of 19
+==27289==    at 0x4C2DB8F: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==27289==    by 0x4564D0: gw_native_malloc (gwmem-native.c:87)
+==27289==    by 0x45C57A: mutex_create_real (thread.c:82)
+==27289==    by 0x465558: dict_create (dict.c:207)
+==27289==    by 0x424567: smpp_pdu_init (smpp_pdu.c:195)
+==27289==    by 0x40921F: smpp_server_reconfigure (smpp_server.c:177)
+==27289==    by 0x40593A: main (ksmppd.c:171)
+==27289== 
+==27289== 56 bytes in 1 blocks are still reachable in loss record 10 of 19
+==27289==    at 0x4C2DB8F: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==27289==    by 0x4564D0: gw_native_malloc (gwmem-native.c:87)
+==27289==    by 0x45C57A: mutex_create_real (thread.c:82)
+==27289==    by 0x465558: dict_create (dict.c:207)
+==27289==    by 0x42457D: smpp_pdu_init (smpp_pdu.c:196)
+==27289==    by 0x40921F: smpp_server_reconfigure (smpp_server.c:177)
+==27289==    by 0x40593A: main (ksmppd.c:171)
+==27289== 
+==27289== 56 bytes in 1 blocks are possibly lost in loss record 11 of 19
+==27289==    at 0x4C2DB8F: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==27289==    by 0x59054A7: ??? (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289==    by 0x590451C: ??? (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289==    by 0x58C6EB4: mysql_server_init (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289==    by 0x58CF436: mysql_init (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289==    by 0x45B637: mysql_open_conn (dbpool_mysql.c:108)
+==27289==    by 0x45B925: dbpool_increase (dbpool.c:206)
+==27289==    by 0x45BA3C: dbpool_create (dbpool.c:172)
+==27289==    by 0x417697: smpp_database_mysql_init (smpp_database_mysql.c:1036)
+==27289==    by 0x40961E: smpp_server_reconfigure (smpp_server.c:242)
+==27289==    by 0x40593A: main (ksmppd.c:171)
+==27289== 
+==27289== 112 bytes in 1 blocks are still reachable in loss record 12 of 19
+==27289==    at 0x4C2DB8F: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==27289==    by 0x4564D0: gw_native_malloc (gwmem-native.c:87)
+==27289==    by 0x45F6BA: gwlist_create_real (list.c:131)
+==27289==    by 0x424533: smpp_pdu_init (smpp_pdu.c:193)
+==27289==    by 0x40921F: smpp_server_reconfigure (smpp_server.c:177)
+==27289==    by 0x40593A: main (ksmppd.c:171)
+==27289== 
+==27289== 176 bytes in 1 blocks are possibly lost in loss record 13 of 19
+==27289==    at 0x4C2DB8F: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==27289==    by 0x59054A7: ??? (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289==    by 0x59036D7: ??? (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289==    by 0x58D893B: ??? (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289==    by 0x58C6EBB: mysql_server_init (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289==    by 0x58CF436: mysql_init (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289==    by 0x45B637: mysql_open_conn (dbpool_mysql.c:108)
+==27289==    by 0x45B925: dbpool_increase (dbpool.c:206)
+==27289==    by 0x45BA3C: dbpool_create (dbpool.c:172)
+==27289==    by 0x417697: smpp_database_mysql_init (smpp_database_mysql.c:1036)
+==27289==    by 0x40961E: smpp_server_reconfigure (smpp_server.c:242)
+==27289==    by 0x40593A: main (ksmppd.c:171)
+==27289== 
+==27289== 4,088 bytes in 1 blocks are still reachable in loss record 14 of 19
+==27289==    at 0x4C2DB8F: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==27289==    by 0x5905867: ??? (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289==    by 0x5905936: ??? (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289==    by 0x58FF0E3: ??? (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289==    by 0x58ED0CF: ??? (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289==    by 0x58EDEEB: ??? (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289==    by 0x58E58C6: ??? (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289==    by 0x58FF9A0: ??? (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289==    by 0x58FFC27: ??? (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289==    by 0x5EC1A98: __pthread_once_slow (pthread_once.c:116)
+==27289==    by 0x5900639: ??? (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289==    by 0x59006D9: ??? (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289== 
+==27289== 4,088 bytes in 1 blocks are still reachable in loss record 15 of 19
+==27289==    at 0x4C2DB8F: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==27289==    by 0x5905867: ??? (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289==    by 0x5905936: ??? (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289==    by 0x58FF125: ??? (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289==    by 0x58ED0CF: ??? (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289==    by 0x58EDEEB: ??? (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289==    by 0x58E58C6: ??? (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289==    by 0x58FF9A0: ??? (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289==    by 0x58FFC27: ??? (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289==    by 0x5EC1A98: __pthread_once_slow (pthread_once.c:116)
+==27289==    by 0x5900639: ??? (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289==    by 0x59006D9: ??? (in /usr/lib/x86_64-linux-gnu/libmysqlclient.so.20.3.10)
+==27289== 
+==27289== 16,384 bytes in 1 blocks are still reachable in loss record 16 of 19
+==27289==    at 0x4C2DB8F: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==27289==    by 0x4564D0: gw_native_malloc (gwmem-native.c:87)
+==27289==    by 0x46552A: dict_create (dict.c:204)
+==27289==    by 0x424551: smpp_pdu_init (smpp_pdu.c:194)
+==27289==    by 0x40921F: smpp_server_reconfigure (smpp_server.c:177)
+==27289==    by 0x40593A: main (ksmppd.c:171)
+==27289== 
+==27289== 16,384 bytes in 1 blocks are still reachable in loss record 17 of 19
+==27289==    at 0x4C2DB8F: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==27289==    by 0x4564D0: gw_native_malloc (gwmem-native.c:87)
+==27289==    by 0x46552A: dict_create (dict.c:204)
+==27289==    by 0x424567: smpp_pdu_init (smpp_pdu.c:195)
+==27289==    by 0x40921F: smpp_server_reconfigure (smpp_server.c:177)
+==27289==    by 0x40593A: main (ksmppd.c:171)
+==27289== 
+==27289== 16,384 bytes in 1 blocks are still reachable in loss record 18 of 19
+==27289==    at 0x4C2DB8F: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==27289==    by 0x4564D0: gw_native_malloc (gwmem-native.c:87)
+==27289==    by 0x46552A: dict_create (dict.c:204)
+==27289==    by 0x42457D: smpp_pdu_init (smpp_pdu.c:196)
+==27289==    by 0x40921F: smpp_server_reconfigure (smpp_server.c:177)
+==27289==    by 0x40593A: main (ksmppd.c:171)
+==27289== 
+==27289== 72,704 bytes in 1 blocks are still reachable in loss record 19 of 19
+==27289==    at 0x4C2DB8F: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==27289==    by 0x7653EFF: ??? (in /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.21)
+==27289==    by 0x40106B9: call_init.part.0 (dl-init.c:72)
+==27289==    by 0x40107CA: call_init (dl-init.c:30)
+==27289==    by 0x40107CA: _dl_init (dl-init.c:120)
+==27289==    by 0x4000C69: ??? (in /lib/x86_64-linux-gnu/ld-2.23.so)
+==27289==    by 0x1: ???
+==27289==    by 0xFFF00078E: ???
+==27289==    by 0xFFF0007A4: ???
+==27289== 
+==27289== LEAK SUMMARY:
+==27289==    definitely lost: 0 bytes in 0 blocks
+==27289==    indirectly lost: 0 bytes in 0 blocks
+==27289==      possibly lost: 232 bytes in 2 blocks
+==27289==    still reachable: 130,608 bytes in 17 blocks
+==27289==         suppressed: 0 bytes in 0 blocks
+==27289== 
+==27289== For counts of detected and suppressed errors, rerun with: -v
+==27289== ERROR SUMMARY: 2 errors from 2 contexts (suppressed: 0 from 0)
+
