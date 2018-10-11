@@ -373,6 +373,8 @@ List *smpp_esme_global_get_queued(SMPPServer *smpp_server) {
                 while((smpp_database_msg = gwlist_consume(msg_queue)) != NULL) {
                     pdus = smpp_pdu_msg_to_pdu(smpp_esme, smpp_database_msg->msg);
                     if(pdus == NULL) {
+			smpp_database_msg_destroy(smpp_database_msg);
+			smpp_database_remove(smpp_esme->smpp_server, smpp_database_msg->global_id, 0);
                         continue;
                     }
                     while((pdu = gwlist_consume(pdus)) != NULL) {

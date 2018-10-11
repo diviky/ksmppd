@@ -242,7 +242,6 @@ void smpp_bearerbox_requeue_routing_done(void *context, SMPPRouteStatus *smpp_ro
     List *queued_outbound_pdus;
     SMPPQueuedPDU *smpp_queued_deliver_pdu;
     SMPP_PDU *pdu;
-    
     if(smpp_route_status->status == SMPP_ESME_ROK) {
         smpp_esme = smpp_esme_find_best_receiver(smpp_database_msg->smpp_server, smpp_database_msg->msg->sms.service);
         if (smpp_esme) {
@@ -564,7 +563,10 @@ void smpp_bearerbox_inbound_thread(void *arg) {
                                     smpp_queues_add_outbound(smpp_queued_deliver_pdu);
                                 }
                                 gwlist_destroy(queued_outbound_pdus, NULL);
-                            }
+                            }else{
+				    warning(0 , "Message From bearerbox %s for %s with SMS [%s] Failed to deliver_sm. Please Report",  octstr_get_cstr(smpp_bearerbox->id), octstr_get_cstr(system_id), octstr_get_cstr(msg->sms.msgdata));
+				    smpp_bearerbox_acknowledge(smpp_bearerbox, ack_id, ack_success);
+			    }
                         } else {
                             
                             if(smpp_bearerbox->smpp_bearerbox_state->smpp_server->database_enable_queue) {
@@ -647,6 +649,11 @@ void smpp_bearerbox_requeue_result(void *context, int status) {
         smpp_database_remove(smpp_database_msg->smpp_server, smpp_database_msg->global_id, 0);
     } else if(status == SMPP_ESME_RSUBMITFAIL) {
         error(0, "Unable to requeue message %lu will not attempt again (permanent failure)", smpp_database_msg->global_id);
+	//TODO
+	//1. remove from database (done)
+	//2. send dlr for these as this already accepted for later delivery with a smsid
+        smpp_database_remove(smpp_database_msg->smpp_server, smpp_database_msg->global_id, 0);
+
     } else {
         error(0, "Unable to requeue message %lu will attempt later", smpp_database_msg->global_id);
     }
