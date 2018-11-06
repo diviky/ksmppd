@@ -526,8 +526,8 @@ List *smpp_pdu_msg_to_pdu(SMPPEsme *smpp_esme, Msg *msg) {
             pdu2->u.deliver_sm.dest_addr_npi = pdu->u.deliver_sm.dest_addr_npi;
             pdu2->u.deliver_sm.data_coding = pdu->u.deliver_sm.data_coding;
             pdu2->u.deliver_sm.protocol_id = pdu->u.deliver_sm.protocol_id;
-            pdu2->u.deliver_sm.source_addr = octstr_duplicate(pdu->u.deliver_sm.destination_addr);
-            pdu2->u.deliver_sm.destination_addr = octstr_duplicate(pdu->u.deliver_sm.source_addr);
+            pdu2->u.deliver_sm.source_addr = octstr_duplicate(pdu->u.deliver_sm.source_addr);
+            pdu2->u.deliver_sm.destination_addr = octstr_duplicate(pdu->u.deliver_sm.destination_addr);
             pdu2->u.deliver_sm.service_type = octstr_duplicate(pdu->u.deliver_sm.service_type);
             if (smpp_esme->version > 0x33) {
                 pdu2->u.deliver_sm.receipted_message_id = octstr_duplicate(msgid2);
