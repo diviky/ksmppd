@@ -250,8 +250,11 @@ void smpp_queues_submit_routing_done(void *context, SMPPRouteStatus *smpp_route_
     double cost = smpp_route_status->parts * smpp_route_status->cost;
     if(smpp_route_status->status == SMPP_ESME_ROK) {
         if(!smpp_queued_response_pdu->smpp_esme->smpp_esme_global->enable_prepaid_billing || smpp_database_deduct_credit(smpp_queued_response_pdu->smpp_esme->smpp_server, smpp_queued_response_pdu->smpp_esme->system_id, cost)) {
-            info(0, "SMPP[%s] Successfully routed message for %s to %s for cost %f", octstr_get_cstr(smpp_queued_response_pdu->smpp_esme->system_id), octstr_get_cstr(smpp_queued_response_pdu->msg->sms.receiver), octstr_get_cstr(smpp_queued_response_pdu->msg->sms.smsc_id), cost);
-            
+            info(0, "SMPP[%s] Successfully routed message for from=%s, to=%s, id=%s to %s for cost %f", octstr_get_cstr(smpp_queued_response_pdu->smpp_esme->system_id),
+                    (smpp_queued_response_pdu->msg->sms.sender ? octstr_get_cstr(smpp_queued_response_pdu->msg->sms.sender):""),
+                    octstr_get_cstr(smpp_queued_response_pdu->msg->sms.receiver),
+                    octstr_get_cstr(smpp_uuid_get(smpp_queued_response_pdu->msg->sms.id)),
+                    octstr_get_cstr(smpp_queued_response_pdu->msg->sms.smsc_id), cost);
             octstr_destroy(smpp_queued_response_pdu->pdu->u.submit_sm_resp.message_id);
             smpp_queued_response_pdu->pdu->u.submit_sm_resp.message_id = smpp_uuid_get(smpp_queued_response_pdu->msg->sms.id);
             
@@ -273,13 +276,16 @@ void smpp_queues_submit_routing_done(void *context, SMPPRouteStatus *smpp_route_
         if(octstr_len(smpp_queued_response_pdu->msg->sms.smsc_id)) {
             cost = smpp_route_status->parts * smpp_queued_response_pdu->smpp_esme->default_cost;
             if(!smpp_queued_response_pdu->smpp_esme->smpp_esme_global->enable_prepaid_billing || smpp_database_deduct_credit(smpp_queued_response_pdu->smpp_esme->smpp_server, smpp_queued_response_pdu->smpp_esme->system_id, cost)) {
-                info(0, "SMPP[%s] Using default routing for %s to %s for cost %f", octstr_get_cstr(smpp_queued_response_pdu->smpp_esme->system_id), octstr_get_cstr(smpp_queued_response_pdu->msg->sms.receiver), octstr_get_cstr(smpp_queued_response_pdu->msg->sms.smsc_id), smpp_queued_response_pdu->smpp_esme->default_cost);
-                
+                info(0, "SMPP[%s]  Using default routing for from=%s, to=%s, id=%s to %s for cost %f", octstr_get_cstr(smpp_queued_response_pdu->smpp_esme->system_id),
+                        (smpp_queued_response_pdu->msg->sms.sender ? octstr_get_cstr(smpp_queued_response_pdu->msg->sms.sender):""),
+                        octstr_get_cstr(smpp_queued_response_pdu->msg->sms.receiver),
+                        octstr_get_cstr(smpp_uuid_get(smpp_queued_response_pdu->msg->sms.id)),
+                        octstr_get_cstr(smpp_queued_response_pdu->msg->sms.smsc_id), cost);
                 octstr_destroy(smpp_queued_response_pdu->pdu->u.submit_sm_resp.message_id);
                 smpp_queued_response_pdu->pdu->u.submit_sm_resp.message_id = smpp_uuid_get(smpp_queued_response_pdu->msg->sms.id);
 
                 smpp_queues_msg_set_dlr_url(smpp_queued_response_pdu->smpp_esme, smpp_queued_response_pdu->msg);
-                
+
                 smpp_bearerbox_add_message(smpp_queued_response_pdu->smpp_esme->smpp_server, smpp_queued_response_pdu->msg, smpp_queues_callback_submit_sm, smpp_queued_response_pdu);
             } else {
                 counter_increase(smpp_queued_response_pdu->smpp_esme->error_counter);
@@ -313,7 +319,11 @@ void smpp_queues_data_sm_routing_done(void *context, SMPPRouteStatus *smpp_route
     double cost = smpp_route_status->parts * smpp_route_status->cost;
     if(smpp_route_status->status == SMPP_ESME_ROK) {
         if(!smpp_queued_response_pdu->smpp_esme->smpp_esme_global->enable_prepaid_billing || smpp_database_deduct_credit(smpp_queued_response_pdu->smpp_esme->smpp_server, smpp_queued_response_pdu->smpp_esme->system_id, cost)) {
-            info(0, "SMPP[%s] Successfully routed message for %s to %s for cost %f", octstr_get_cstr(smpp_queued_response_pdu->smpp_esme->system_id), octstr_get_cstr(smpp_queued_response_pdu->msg->sms.receiver), octstr_get_cstr(smpp_queued_response_pdu->msg->sms.smsc_id), cost);
+            info(0, "SMPP[%s] Successfully routed message for from=%s, to=%s, id=%s to %s for cost %f", octstr_get_cstr(smpp_queued_response_pdu->smpp_esme->system_id),
+                    (smpp_queued_response_pdu->msg->sms.sender ? octstr_get_cstr(smpp_queued_response_pdu->msg->sms.sender):""),
+                    octstr_get_cstr(smpp_queued_response_pdu->msg->sms.receiver),
+                    octstr_get_cstr(smpp_uuid_get(smpp_queued_response_pdu->msg->sms.id)),
+                    octstr_get_cstr(smpp_queued_response_pdu->msg->sms.smsc_id), cost);
             smpp_bearerbox_add_message(smpp_queued_response_pdu->smpp_esme->smpp_server, smpp_queued_response_pdu->msg, smpp_queues_callback_data_sm, smpp_queued_response_pdu);
         } else {
             counter_increase(smpp_queued_response_pdu->smpp_esme->error_counter);
@@ -330,7 +340,12 @@ void smpp_queues_data_sm_routing_done(void *context, SMPPRouteStatus *smpp_route
         if(octstr_len(smpp_queued_response_pdu->msg->sms.smsc_id)) {
             cost = smpp_route_status->parts * smpp_queued_response_pdu->smpp_esme->default_cost;
             if(!smpp_queued_response_pdu->smpp_esme->smpp_esme_global->enable_prepaid_billing || smpp_database_deduct_credit(smpp_queued_response_pdu->smpp_esme->smpp_server, smpp_queued_response_pdu->smpp_esme->system_id, cost)) {
-                info(0, "SMPP[%s] Using default routing for %s to %s for cost %f", octstr_get_cstr(smpp_queued_response_pdu->smpp_esme->system_id), octstr_get_cstr(smpp_queued_response_pdu->msg->sms.receiver), octstr_get_cstr(smpp_queued_response_pdu->msg->sms.smsc_id), smpp_queued_response_pdu->smpp_esme->default_cost);
+
+            info(0, "SMPP[%s] Successfully routed message for from=%s, to=%s, id=%s to %s for cost %f", octstr_get_cstr(smpp_queued_response_pdu->smpp_esme->system_id),
+                    (smpp_queued_response_pdu->msg->sms.sender ? octstr_get_cstr(smpp_queued_response_pdu->msg->sms.sender):""),
+                    octstr_get_cstr(smpp_queued_response_pdu->msg->sms.receiver),
+                    octstr_get_cstr(smpp_uuid_get(smpp_queued_response_pdu->msg->sms.id)),
+                    octstr_get_cstr(smpp_queued_response_pdu->msg->sms.smsc_id), cost);
                 smpp_bearerbox_add_message(smpp_queued_response_pdu->smpp_esme->smpp_server, smpp_queued_response_pdu->msg, smpp_queues_callback_data_sm, smpp_queued_response_pdu);
             } else {
                 counter_increase(smpp_queued_response_pdu->smpp_esme->error_counter);

@@ -518,7 +518,7 @@ List *smpp_pdu_msg_to_pdu(SMPPEsme *smpp_esme, Msg *msg) {
         
         while ((msgid2 = gwlist_extract_first(parts)) != NULL) {
             pdu2 = smpp_pdu_create(deliver_sm, 0);
-            debug("smpp.pdu.msg.to.pdu", 0, "SMPP[%s:%ld] Creating deliver_sm for message: %s sequence number %ld.", octstr_get_cstr(smpp_esme->system_id), smpp_esme->id, octstr_get_cstr(msgid2), pdu2->u.deliver_sm.sequence_number);
+            info(0, "SMPP[%s:%ld] Creating deliver_sm for message: id:%s from:%s to:%s.", octstr_get_cstr(smpp_esme->system_id), smpp_esme->id, octstr_get_cstr(msgid2), octstr_get_cstr(pdu->u.deliver_sm.destination_addr), octstr_get_cstr(pdu->u.deliver_sm.source_addr));
             pdu2->u.deliver_sm.esm_class = pdu->u.deliver_sm.esm_class;
             pdu2->u.deliver_sm.source_addr_ton = pdu->u.deliver_sm.dest_addr_ton;
             pdu2->u.deliver_sm.source_addr_npi = pdu->u.deliver_sm.dest_addr_npi;
