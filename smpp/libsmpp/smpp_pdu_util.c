@@ -524,16 +524,17 @@ List *smpp_pdu_msg_to_pdu(SMPPEsme *smpp_esme, Msg *msg) {
 
         while ((msgid2 = gwlist_extract_first(parts)) != NULL) {
             pdu2 = smpp_pdu_create(deliver_sm, 0);
-            debug("smpp.pdu.msg.to.pdu", 0, "SMPP[%s:%ld] Creating deliver_sm for message: %s sequence number %ld.", octstr_get_cstr(smpp_esme->system_id), smpp_esme->id, octstr_get_cstr(msgid2), pdu2->u.deliver_sm.sequence_number);
+            //account deliver_sm id source destination route stat err submit_time done_time diff
+            info(0, "%s deliver_sm %s %s %s %s %s %s %s %s %ld", octstr_get_cstr(smpp_esme->system_id), octstr_get_cstr(msgid2), octstr_get_cstr(pdu->u.deliver_sm.destination_addr), octstr_get_cstr(pdu->u.deliver_sm.source_addr), octstr_get_cstr(msg->sms.smsc_id), octstr_get_cstr(dlr_status), err , submit_date_c_str, done_date_c_str, ( msg->sms.time - dlr_time));
             pdu2->u.deliver_sm.esm_class = pdu->u.deliver_sm.esm_class;
-            pdu2->u.deliver_sm.source_addr_ton = pdu->u.deliver_sm.source_addr_ton;
-            pdu2->u.deliver_sm.source_addr_npi = pdu->u.deliver_sm.source_addr_npi;
-            pdu2->u.deliver_sm.dest_addr_ton = pdu->u.deliver_sm.dest_addr_ton;
-            pdu2->u.deliver_sm.dest_addr_npi = pdu->u.deliver_sm.dest_addr_npi;
+            pdu2->u.deliver_sm.source_addr_ton = pdu->u.deliver_sm.dest_addr_ton;
+            pdu2->u.deliver_sm.source_addr_npi = pdu->u.deliver_sm.dest_addr_npi;
+            pdu2->u.deliver_sm.dest_addr_ton = pdu->u.deliver_sm.source_addr_ton;
+            pdu2->u.deliver_sm.dest_addr_npi = pdu->u.deliver_sm.source_addr_npi;
             pdu2->u.deliver_sm.data_coding = pdu->u.deliver_sm.data_coding;
             pdu2->u.deliver_sm.protocol_id = pdu->u.deliver_sm.protocol_id;
-            pdu2->u.deliver_sm.source_addr = octstr_duplicate(pdu->u.deliver_sm.source_addr);
-            pdu2->u.deliver_sm.destination_addr = octstr_duplicate(pdu->u.deliver_sm.destination_addr);
+            pdu2->u.deliver_sm.source_addr = octstr_duplicate(pdu->u.deliver_sm.destination_addr);
+            pdu2->u.deliver_sm.destination_addr = octstr_duplicate(pdu->u.deliver_sm.source_addr);
             pdu2->u.deliver_sm.service_type = octstr_duplicate(pdu->u.deliver_sm.service_type);
             if (smpp_esme->version > 0x33) {
                 pdu2->u.deliver_sm.receipted_message_id = octstr_duplicate(msgid2);

@@ -1110,7 +1110,7 @@ SMPPEsme *smpp_esme_create() {
 }
 
 void smpp_esme_destroy(SMPPEsme *smpp_esme) {
-    debug("smpp.esme.destroy", 0, "Destroying ESME id:%ld - %s", smpp_esme->id, octstr_get_cstr(smpp_esme->system_id));
+    warning( 0, "SMPP[%s] Destroying ESME id:%ld ", octstr_get_cstr(smpp_esme->system_id), smpp_esme->id);
     smpp_esme_destroy_open_acks(smpp_esme);
     
     counter_destroy(smpp_esme->inbound_queued);
