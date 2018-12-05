@@ -710,7 +710,7 @@ void smpp_queues_handle_bind_pdu(SMPPQueuedPDU *smpp_queued_pdu) {
     }
 
     if (auth_result) {
-        info(0, "SMPP[%s] Successfully authenticated", octstr_get_cstr(smpp_queued_pdu->smpp_esme->system_id));
+        info(0, "SMPP[%s] Successfully authenticated from %s", octstr_get_cstr(smpp_queued_pdu->smpp_esme->system_id), octstr_get_cstr(smpp_queued_pdu->smpp_esme->ip));
 
         if (octstr_len(auth_result->default_smsc)) {
             smpp_queued_pdu->smpp_esme->default_smsc = octstr_duplicate(auth_result->default_smsc);
@@ -744,6 +744,8 @@ void smpp_queues_handle_bind_pdu(SMPPQueuedPDU *smpp_queued_pdu) {
         if(smpp_queued_pdu->smpp_esme->smpp_esme_global->enable_prepaid_billing) {
             info(0, "SMPP[%s] has prepaid billing enabled.", octstr_get_cstr(smpp_queued_pdu->smpp_esme->smpp_esme_global->system_id));
         }
+    }else{
+        warning(0, "SMPP[%s] Authentication Failed from %s", octstr_get_cstr(smpp_queued_pdu->pdu->u.bind_transmitter.system_id), octstr_get_cstr(smpp_queued_pdu->smpp_esme->ip));
     }
 
     smpp_queued_pdu_destroy(smpp_queued_pdu);
