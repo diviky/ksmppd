@@ -982,7 +982,7 @@ int parse_dlr_short_message(Octstr *short_message, Octstr **id, unsigned int *su
 			stat_cstr, err_cstr);
 	if (ret != 7) {
 		debug("ksmppd.dlr.smpp", 0, "Could not parse DLR string sscanf way, "
-				"fallback to old way. Please report!");
+				"fallback to old way. Please report! %s", octstr_get_cstr(short_message));
 
 		if ((curr = octstr_search(short_message, octstr_imm("id:"), 0)) != -1) {
 			if ((vpos = octstr_search_char(short_message, ' ', curr)) == -1)
