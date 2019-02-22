@@ -58,33 +58,33 @@
  * 
  * This product includes software developed by the Kannel Group (http://www.kannel.org/).
  * 
- */ 
+ */
 
 #ifndef SMPP_ESME_H
 #define SMPP_ESME_H
 
-#define SMPP_ESME_CLEANUP_INTERVAL 30
-#define SMPP_ESME_CLEANUP_QUEUE_DELAY 15
+#define SMPP_ESME_CLEANUP_INTERVAL 15
+#define SMPP_ESME_CLEANUP_QUEUE_DELAY 10
 #define SMPP_ESME_MAX_CONSECUTIVE_ERRORS 10
-#define SMPP_ESME_WAIT_ACK_TIME 120
+#define SMPP_ESME_WAIT_ACK_TIME 60
 #define SMPP_ESME_WAIT_ACK_DISCONNECT 1
 #define SMPP_ESME_COMMAND_STATUS_WAIT_ACK_TIMEOUT 0x0400
 #define SMPP_ESME_COMMAND_STATUS_QUEUED 0x0401
 #define SMPP_ESME_COMMAND_STATUS_QUEUE_ERROR 0x0402
 
-#define SMPP_ESME_DEFAULT_ENQUIRE_LINK_INTERVAL 180
+#define SMPP_ESME_DEFAULT_ENQUIRE_LINK_INTERVAL 120
 #define SMPP_ESME_DEFAULT_MAX_OPEN_ACKS 500
 
 #define SMPP_ESME_UNDEFINED 0
 #define SMPP_ESME_TRANSMIT 1
 #define SMPP_ESME_RECEIVE 2
 
-
-
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
-    typedef struct {
+    typedef struct
+    {
         Octstr *system_id;
         double throughput;
         Load *inbound_load;
@@ -100,127 +100,127 @@ extern "C" {
         Counter *dlr_counter;
         Counter *error_counter;
     } SMPPEsmeGlobal;
-    
-    
-    typedef struct {
+
+    typedef struct
+    {
         double throughput;
         Octstr *default_smsc;
         double default_cost;
-        
+
         int max_binds;
-        
+
         Octstr *callback_url;
-        
+
         int simulate;
         unsigned long simulate_deliver_every;
         unsigned long simulate_mo_every;
         unsigned long simulate_permanent_failure_every;
         unsigned long simulate_temporary_failure_every;
-        
+
         int enable_prepaid_billing;
-        
+
         Octstr *allowed_ips;
-        
+
         Octstr *alt_charset;
     } SMPPESMEAuthResult;
-    
-    typedef struct {
+
+    typedef struct
+    {
         Octstr *system_id;
         Octstr *system_type;
         Connection *conn;
         volatile int authenticated;
         volatile int connected;
         volatile int pending_disconnect;
-        
+
         struct event *event_container;
         SMPPServer *smpp_server;
         long time_connected;
         long time_disconnected;
         long time_last_pdu;
         long time_last_queue_process;
-        
+
         long enquire_link_interval;
-        
+
         int bind_type;
         int version;
-        
+
         Load *inbound_load;
         Load *outbound_load;
-        
+
         Counter *inbound_queued;
         Counter *outbound_queued;
         Counter *pending_routing;
         Counter *sequence_number;
-        
+
         Counter *errors;
         RWLock *event_lock;
-        
+
         long id;
-        
-        
+
         Counter *inbound_processed;
         Counter *outbound_processed;
-        
+
         int simulate;
         unsigned long simulate_deliver_every;
         unsigned long simulate_mo_every;
         unsigned long simulate_permanent_failure_every;
         unsigned long simulate_temporary_failure_every;
-        
+
         Octstr *alt_charset;
         Octstr *alt_addr_charset;
-        
+
         Octstr *default_smsc;
         double default_cost;
-        
+
         Dict *open_acks;
         RWLock *ack_process_lock;
-        
+
         Counter *catenated_sms_counter;
-        
+
         int wait_ack_action;
         int wait_ack_time;
-        
+
         long max_open_acks;
-        
+
         SMPPEsmeGlobal *smpp_esme_global;
-        
+
         Octstr *ip;
-        
+
         long pending_len;
-        
+
         Counter *mt_counter;
         Counter *mo_counter;
         Counter *dlr_counter;
         Counter *error_counter;
     } SMPPEsme;
-    
+
     SMPPESMEAuthResult *smpp_esme_auth_result_create();
-    
+
     void smpp_esme_auth_result_destroy(SMPPESMEAuthResult *smpp_esme_auth_result);
-    
+
     SMPPEsme *smpp_esme_create();
     void smpp_esme_destroy(SMPPEsme *smpp_esme);
-    
+
     void smpp_esme_init(SMPPServer *smpp_server);
     void smpp_esme_shutdown(SMPPServer *smpp_server);
-    
+
     void smpp_esme_global_add(SMPPServer *smpp_server, SMPPEsme *smpp_esme);
-    
+
     void smpp_esme_cleanup(SMPPEsme *smpp_esme);
-    
+
     /* This will just disconnect the connection, no unbind */
     void smpp_esme_disconnect(SMPPEsme *smpp_esme);
-    
+
     /* Cancel event listeners */
     void smpp_esme_stop_listening(SMPPEsme *smpp_esme);
-    
+
     void smpp_esme_inbound_load_increase(SMPPEsme *smpp_esme);
     void smpp_esme_outbound_load_increase(SMPPEsme *smpp_esme);
     SMPPEsme *smpp_esme_find_best_receiver(SMPPServer *smpp_server, Octstr *system_id);
     List *smpp_esme_global_get_readers(SMPPServer *smpp_server, int best_only);
     List *smpp_esme_global_get_queued(SMPPServer *smpp_server);
-    
+
     SMPPESMEAuthResult *smpp_esme_auth(SMPPServer *smpp_server, Octstr *system_id, Octstr *password, SMPPEsme *smpp_esme);
 
 #ifdef __cplusplus
@@ -228,4 +228,3 @@ extern "C" {
 #endif
 
 #endif /* SMPP_ESME_H */
-
