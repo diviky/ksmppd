@@ -84,6 +84,7 @@
  `default_smsc` varchar(64) DEFAULT NULL,
  `callback_url` varchar(255) DEFAULT NULL,
  `simulate` tinyint(1) NOT NULL DEFAULT '0',
+ `simulate_dlr_fail` tinyint(1) not null default '0',
  `simulate_deliver_every` int unsigned not null,
  `simulate_permanent_failure_every` int unsigned not null,
  `simulate_temporary_failure_every` int unsigned not null,
@@ -94,14 +95,14 @@
  
  -- User with simulation
  INSERT INTO smpp_user 
- (`system_id`, `password`, `throughput`, `default_smsc`, `callback_url`, `simulate`, `simulate_deliver_every`, `simulate_permanent_failure_every`, `simulate_temporary_failure_every`) VALUES 
- ('rimas', password('simulate'), 10.0, NULL, NULL, 1, 0, 0, 1);
+ (`system_id`, `password`, `throughput`, `default_smsc`, `callback_url`, `simulate`, `simulate_dlr_fail`, `simulate_deliver_every`, `simulate_permanent_failure_every`, `simulate_temporary_failure_every`) VALUES 
+ ('rimas', password('simulate'), 10.0, NULL, NULL, 1, 0, 0, 0, 1);
  
 -- Normal user
 
  INSERT INTO smpp_user 
- (`system_id`, `password`, `throughput`, `default_smsc`, `callback_url`, `simulate`, `simulate_deliver_every`, `simulate_permanent_failure_every`, `simulate_temporary_failure_every`) VALUES 
- ('simulate', password('simulate'), 10.0, NULL, NULL, 0, 0, 0, 0);
+ (`system_id`, `password`, `throughput`, `default_smsc`, `callback_url`, `simulate`, `simulate_dlr_fail`, `simulate_deliver_every`, `simulate_permanent_failure_every`, `simulate_temporary_failure_every`) VALUES 
+ ('simulate', password('simulate'), 10.0, NULL, NULL, 0, 0, 0, 0, 0);
  
  */
 
@@ -564,6 +565,7 @@ int smpp_database_mysql_init_tables(SMPPServer *smpp_server, SMPPDatabase *smpp_
       "`credit` double NOT NULL DEFAULT '0',"
       "`callback_url` varchar(255) DEFAULT NULL,"
       "`simulate` tinyint(1) NOT NULL DEFAULT '0',"
+      "`simulate_dlr_fail` tinyint(1) NOT NULL DEFAULT '0',"
       "`simulate_deliver_every` int(10) unsigned NOT NULL,"
       "`simulate_permanent_failure_every` int(10) unsigned NOT NULL,"
       "`simulate_temporary_failure_every` int(10) unsigned NOT NULL,"
@@ -632,6 +634,14 @@ int smpp_database_mysql_init_tables(SMPPServer *smpp_server, SMPPDatabase *smpp_
         if(running_version < our_version) {
             octstr_destroy(sql);
             sql = octstr_format("ALTER TABLE %S ADD COLUMN priority int DEFAULT '0'", smpp_server->database_route_table);
+            dbpool_conn_update(conn, sql, NULL);
+            running_version = our_version;
+        }
+        
+        our_version = 5;
+        if(running_version < our_version) {
+            octstr_destroy(sql);
+            sql = octstr_format("ALTER TABLE %S ADD COLUMN simulate_dlr_fail tinyint(1) NOT NULL DEFAULT '0'", smpp_server->database_user_table);
             dbpool_conn_update(conn, sql, NULL);
             running_version = our_version;
         }
@@ -891,6 +901,7 @@ SMPPESMEAuthResult *smpp_database_mysql_authenticate(void *context, Octstr *user
             "`default_smsc`, "
             "`callback_url`, "
             "`simulate`, "
+            "`simulate_dlr_fail`, "
             "`simulate_deliver_every`, "
             "`simulate_permanent_failure_every`, "
             "`simulate_temporary_failure_every`, "
@@ -922,11 +933,11 @@ SMPPESMEAuthResult *smpp_database_mysql_authenticate(void *context, Octstr *user
         res->throughput = atof(octstr_get_cstr(gwlist_get(row, 0)));
         res->default_smsc = octstr_duplicate(gwlist_get(row, 1));
         res->callback_url = octstr_duplicate(gwlist_get(row, 2));
-        res->default_cost = atof(octstr_get_cstr(gwlist_get(row, 8)));
-        res->max_binds = atoi(octstr_get_cstr(gwlist_get(row, 9)));
-        res->enable_prepaid_billing = atoi(octstr_get_cstr(gwlist_get(row, 10)));
-        if(octstr_len(gwlist_get(row, 11))) {
-            res->allowed_ips = octstr_duplicate(gwlist_get(row, 11));
+        res->default_cost = atof(octstr_get_cstr(gwlist_get(row, 9)));
+        res->max_binds = atoi(octstr_get_cstr(gwlist_get(row, 10)));
+        res->enable_prepaid_billing = atoi(octstr_get_cstr(gwlist_get(row, 11)));
+        if(octstr_len(gwlist_get(row, 12))) {
+            res->allowed_ips = octstr_duplicate(gwlist_get(row, 12));
         }
         
         tmp = gwlist_get(row, 3);
@@ -935,17 +946,21 @@ SMPPESMEAuthResult *smpp_database_mysql_authenticate(void *context, Octstr *user
             if(res->simulate) {
                 tmp = gwlist_get(row, 4);
                 if(tmp) {
-                    res->simulate_deliver_every = atol(octstr_get_cstr(tmp));
+                    res->simulate_dlr_fail = atoi(octstr_get_cstr(tmp));
                 }
                 tmp = gwlist_get(row, 5);
                 if(tmp) {
-                    res->simulate_permanent_failure_every = atol(octstr_get_cstr(tmp));
+                    res->simulate_deliver_every = atol(octstr_get_cstr(tmp));
                 }
                 tmp = gwlist_get(row, 6);
                 if(tmp) {
-                    res->simulate_temporary_failure_every = atol(octstr_get_cstr(tmp));
+                    res->simulate_permanent_failure_every = atol(octstr_get_cstr(tmp));
                 }
                 tmp = gwlist_get(row, 7);
+                if(tmp) {
+                    res->simulate_temporary_failure_every = atol(octstr_get_cstr(tmp));
+                }
+                tmp = gwlist_get(row, 8);
                 if(tmp) {
                     res->simulate_mo_every = atol(octstr_get_cstr(tmp));
                 }

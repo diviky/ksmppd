@@ -461,7 +461,7 @@ void smpp_queues_handle_submit_sm(SMPPQueuedPDU *smpp_queued_pdu) {
                 if(smpp_esme->simulate_deliver_every && ((simulation_count % smpp_esme->simulate_deliver_every) == 0)) {
                     msg->sms.sms_type = report_mo;
                     
-                    msg->sms.dlr_mask = DLR_SUCCESS;
+                    msg->sms.dlr_mask = smpp_esme->simulate_dlr_fail ? DLR_FAIL : DLR_SUCCESS;
 
                     smpp_queues_msg_set_dlr_url(smpp_esme, msg);
                     
@@ -715,6 +715,15 @@ void smpp_queues_handle_bind_pdu(SMPPQueuedPDU *smpp_queued_pdu) {
         if (octstr_len(auth_result->default_smsc)) {
             smpp_queued_pdu->smpp_esme->default_smsc = octstr_duplicate(auth_result->default_smsc);
         }
+
+        if(octstr_len(auth_result->alt_charset)) {
+            debug("smpp.queues", 0, "SMPP[%s] Has requested default charset %s",
+                    octstr_get_cstr(smpp_queued_pdu->smpp_esme->system_id), 
+                    octstr_get_cstr(auth_result->alt_charset)
+                    );
+            smpp_queued_pdu->smpp_esme->alt_charset = octstr_duplicate(auth_result->alt_charset);
+        }
+
         smpp_queued_pdu->smpp_esme->default_cost = auth_result->default_cost;
 
         if (auth_result->simulate) {
@@ -731,8 +740,13 @@ void smpp_queues_handle_bind_pdu(SMPPQueuedPDU *smpp_queued_pdu) {
                     auth_result->simulate_mo_every,
                     smpp_queued_pdu->smpp_esme->max_open_acks
                     );
+            if (auth_result->simulate_dlr_fail) {
+                warning(0, "SMPP[%s] Simulated DLR status set to UNDELIV",
+                        octstr_get_cstr(smpp_queued_pdu->smpp_esme->system_id));
+            }
 
             smpp_queued_pdu->smpp_esme->simulate = auth_result->simulate;
+            smpp_queued_pdu->smpp_esme->simulate_dlr_fail = auth_result->simulate_dlr_fail;
             smpp_queued_pdu->smpp_esme->simulate_deliver_every = auth_result->simulate_deliver_every;
             smpp_queued_pdu->smpp_esme->simulate_permanent_failure_every = auth_result->simulate_permanent_failure_every;
             smpp_queued_pdu->smpp_esme->simulate_temporary_failure_every = auth_result->simulate_temporary_failure_every;
@@ -756,6 +770,7 @@ void smpp_queues_handle_bind_pdu(SMPPQueuedPDU *smpp_queued_pdu) {
 void smpp_queues_inbound_thread(void *arg) {
     SMPPServer *smpp_server = arg;
     SMPPQueuedPDU *smpp_queued_pdu;
+    SMPPEsmeData *smpp_esme_data = smpp_server->esme_data;
 
     debug("smpp.queues.inbound.thread", 0, "Starting inbound PDU processor thread");
 
@@ -769,6 +784,8 @@ void smpp_queues_inbound_thread(void *arg) {
         smpp_queued_pdu->smpp_esme->time_last_queue_process = time(NULL);
         counter_decrease(smpp_queued_pdu->smpp_esme->inbound_queued);
         counter_increase(smpp_queued_pdu->smpp_esme->inbound_processed);
+
+        gw_rwlock_rdlock(smpp_esme_data->lock);
 
         switch (smpp_queued_pdu->pdu->type) {
             case bind_transmitter:
@@ -797,6 +814,8 @@ void smpp_queues_inbound_thread(void *arg) {
                 smpp_queued_pdu_destroy(smpp_queued_pdu);
                 break;
         }
+
+        gw_rwlock_unlock(smpp_esme_data->lock);
         
         if(gw_prioqueue_len(smpp_server->inbound_queue) > 100) {
             warning(0, "Inbound queues are at %ld", gw_prioqueue_len(smpp_server->inbound_queue));
