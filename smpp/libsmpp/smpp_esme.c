@@ -85,6 +85,7 @@ SMPPESMEAuthResult *smpp_esme_auth_result_create() {
     smpp_esme_auth_result->callback_url = NULL;
     smpp_esme_auth_result->throughput = 0;
     smpp_esme_auth_result->simulate = 0;
+    smpp_esme_auth_result->simulate_dlr_fail = 0;
     smpp_esme_auth_result->simulate_deliver_every = 0;
     smpp_esme_auth_result->simulate_mo_every = 0;
     smpp_esme_auth_result->simulate_permanent_failure_every = 0;
@@ -1058,6 +1059,7 @@ SMPPEsme *smpp_esme_create() {
 
     smpp_esme->event_lock = gw_rwlock_create();
     smpp_esme->simulate = 0;
+    smpp_esme->simulate_dlr_fail = 0;
     smpp_esme->inbound_processed = counter_create();
     smpp_esme->outbound_processed = counter_create();
     smpp_esme->simulate_deliver_every = 0;

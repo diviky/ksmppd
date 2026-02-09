@@ -429,7 +429,7 @@ void smpp_queues_handle_submit_sm(SMPPQueuedPDU *smpp_queued_pdu) {
                 if(smpp_esme->simulate_deliver_every && ((simulation_count % smpp_esme->simulate_deliver_every) == 0)) {
                     msg->sms.sms_type = report_mo;
                     
-                    msg->sms.dlr_mask = DLR_SUCCESS;
+                    msg->sms.dlr_mask = smpp_esme->simulate_dlr_fail ? DLR_FAIL : DLR_SUCCESS;
 
                     smpp_queues_msg_set_dlr_url(smpp_esme, msg);
                     
@@ -708,8 +708,13 @@ void smpp_queues_handle_bind_pdu(SMPPQueuedPDU *smpp_queued_pdu) {
                     auth_result->simulate_mo_every,
                     smpp_queued_pdu->smpp_esme->max_open_acks
                     );
+            if (auth_result->simulate_dlr_fail) {
+                warning(0, "SMPP[%s] Simulated DLR status set to UNDELIV",
+                        octstr_get_cstr(smpp_queued_pdu->smpp_esme->system_id));
+            }
 
             smpp_queued_pdu->smpp_esme->simulate = auth_result->simulate;
+            smpp_queued_pdu->smpp_esme->simulate_dlr_fail = auth_result->simulate_dlr_fail;
             smpp_queued_pdu->smpp_esme->simulate_deliver_every = auth_result->simulate_deliver_every;
             smpp_queued_pdu->smpp_esme->simulate_permanent_failure_every = auth_result->simulate_permanent_failure_every;
             smpp_queued_pdu->smpp_esme->simulate_temporary_failure_every = auth_result->simulate_temporary_failure_every;

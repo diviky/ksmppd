@@ -151,6 +151,11 @@ SMPPESMEAuthResult *smpp_http_client_auth(SMPPServer *smpp_server, Octstr *syste
                         res->simulate = atoi(octstr_get_cstr(tmp));
                     }
                     octstr_destroy(tmp);
+                    tmp = http_header_value(response_headers, octstr_imm("x-ksmppd-simulate-dlr-fail"));
+                    if(octstr_len(tmp)) {
+                        res->simulate_dlr_fail = atoi(octstr_get_cstr(tmp));
+                    }
+                    octstr_destroy(tmp);
                     tmp = http_header_value(response_headers, octstr_imm("x-ksmppd-simulate-deliver-every"));
                     if(octstr_len(tmp)) {
                         res->simulate_deliver_every = atol(octstr_get_cstr(tmp));
