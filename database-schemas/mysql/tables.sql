@@ -70,6 +70,7 @@ CREATE TABLE `smpp_user` (
   `credit` double NOT NULL DEFAULT '0',
   `callback_url` varchar(255) DEFAULT NULL,
   `simulate` tinyint(1) NOT NULL DEFAULT '0',
+  `simulate_dlr_fail` tinyint(1) NOT NULL DEFAULT '0',
   `simulate_deliver_every` int(10) unsigned NOT NULL,
   `simulate_permanent_failure_every` int(10) unsigned NOT NULL,
   `simulate_temporary_failure_every` int(10) unsigned NOT NULL,
