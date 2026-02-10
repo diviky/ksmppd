@@ -570,6 +570,11 @@ List *smpp_pdu_msg_to_pdu(SMPPEsme *smpp_esme, Msg *msg)
             gw_strftime(done_date_c_str, sizeof(done_date_c_str), "%y%m%d%H%M%S", &tm_tmp);
         }
 
+        if ((dlrtype == DLR_FAIL || dlrtype == DLR_SMSC_FAIL) && dlr_err == 0)
+        {
+            dlr_err = 1;
+        }
+
         /* the msgids are in dlr->dlr_url as reported by Victor Luchitz */
         gwlist_destroy(parts, octstr_destroy_item);
         parts = octstr_split(dlr_url, octstr_imm(";"));

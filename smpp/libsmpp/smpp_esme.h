@@ -103,6 +103,19 @@ extern "C"
 
     typedef struct
     {
+        Dict *esmes;
+        RWLock *lock;
+        List *cleanup_queue;
+        RWLock *cleanup_lock;
+        Load *inbound_load;
+        Load *outbound_load;
+        Counter *inbound_processed;
+        Counter *outbound_processed;
+        long cleanup_thread_id;
+    } SMPPEsmeData;
+
+    typedef struct
+    {
         double throughput;
         Octstr *default_smsc;
         double default_cost;
@@ -112,6 +125,7 @@ extern "C"
         Octstr *callback_url;
 
         int simulate;
+        int simulate_dlr_fail;
         unsigned long simulate_deliver_every;
         unsigned long simulate_mo_every;
         unsigned long simulate_permanent_failure_every;
@@ -162,6 +176,7 @@ extern "C"
         Counter *outbound_processed;
 
         int simulate;
+        int simulate_dlr_fail;
         unsigned long simulate_deliver_every;
         unsigned long simulate_mo_every;
         unsigned long simulate_permanent_failure_every;
