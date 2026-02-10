@@ -125,7 +125,7 @@ extern "C"
         Octstr *callback_url;
 
         int simulate;
-        int simulate_dlr_fail;
+        unsigned long simulate_dlr_fail;
         unsigned long simulate_deliver_every;
         unsigned long simulate_mo_every;
         unsigned long simulate_permanent_failure_every;

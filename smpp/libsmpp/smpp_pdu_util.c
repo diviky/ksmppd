@@ -1080,36 +1080,56 @@ int parse_dlr_short_message(Octstr *short_message, Octstr **id, unsigned int *su
         {
             if ((vpos = octstr_search_char(short_message, ' ', curr)) == -1)
                 vpos = octstr_len(short_message);
-            if (vpos - curr > 0)
-                octstr_get_many_chars(id_cstr, short_message, curr + 3, vpos - curr - 3);
+            if (vpos - curr > 0) {
+                long copy_len = vpos - curr - 3;
+                if (copy_len > (long)sizeof(id_cstr) - 1)
+                    copy_len = (long)sizeof(id_cstr) - 1;
+                octstr_get_many_chars(id_cstr, short_message, curr + 3, copy_len);
+            }
         }
         if ((curr = octstr_search(short_message, octstr_imm("sub:"), 0)) != -1)
         {
             if ((vpos = octstr_search_char(short_message, ' ', curr)) == -1)
                 vpos = octstr_len(short_message);
-            if (vpos - curr > 0)
-                octstr_get_many_chars(sub_cstr, short_message, curr + 4, vpos - curr - 4);
+            if (vpos - curr > 0) {
+                long copy_len = vpos - curr - 4;
+                if (copy_len > (long)sizeof(sub_cstr) - 1)
+                    copy_len = (long)sizeof(sub_cstr) - 1;
+                octstr_get_many_chars(sub_cstr, short_message, curr + 4, copy_len);
+            }
         }
         if ((curr = octstr_search(short_message, octstr_imm("dlvrd:"), 0)) != -1)
         {
             if ((vpos = octstr_search_char(short_message, ' ', curr)) == -1)
                 vpos = octstr_len(short_message);
-            if (vpos - curr > 0)
-                octstr_get_many_chars(dlvrd_cstr, short_message, curr + 6, vpos - curr - 6);
+            if (vpos - curr > 0) {
+                long copy_len = vpos - curr - 6;
+                if (copy_len > (long)sizeof(dlvrd_cstr) - 1)
+                    copy_len = (long)sizeof(dlvrd_cstr) - 1;
+                octstr_get_many_chars(dlvrd_cstr, short_message, curr + 6, copy_len);
+            }
         }
         if ((curr = octstr_search(short_message, octstr_imm("submit date:"), 0)) != -1)
         {
             if ((vpos = octstr_search_char(short_message, ' ', curr)) == -1)
                 vpos = octstr_len(short_message);
-            if (vpos - curr > 0)
-                octstr_get_many_chars(sub_d_cstr, short_message, curr + 12, vpos - curr - 12);
+            if (vpos - curr > 0) {
+                long copy_len = vpos - curr - 12;
+                if (copy_len > (long)sizeof(sub_d_cstr) - 1)
+                    copy_len = (long)sizeof(sub_d_cstr) - 1;
+                octstr_get_many_chars(sub_d_cstr, short_message, curr + 12, copy_len);
+            }
         }
         if ((curr = octstr_search(short_message, octstr_imm("done date:"), 0)) != -1)
         {
             if ((vpos = octstr_search_char(short_message, ' ', curr)) == -1)
                 vpos = octstr_len(short_message);
-            if (vpos - curr > 0)
-                octstr_get_many_chars(done_d_cstr, short_message, curr + 10, vpos - curr - 10);
+            if (vpos - curr > 0) {
+                long copy_len = vpos - curr - 10;
+                if (copy_len > (long)sizeof(done_d_cstr) - 1)
+                    copy_len = (long)sizeof(done_d_cstr) - 1;
+                octstr_get_many_chars(done_d_cstr, short_message, curr + 10, copy_len);
+            }
         }
 
         /* get err & status code */
@@ -1117,23 +1137,35 @@ int parse_dlr_short_message(Octstr *short_message, Octstr **id, unsigned int *su
         {
             if ((vpos = octstr_search_char(short_message, ' ', curr)) == -1)
                 vpos = octstr_len(short_message);
-            if (vpos - curr > 0)
-                octstr_get_many_chars(stat_cstr, short_message, curr + 5, vpos - curr - 5);
+            if (vpos - curr > 0) {
+                long copy_len = vpos - curr - 5;
+                if (copy_len > (long)sizeof(stat_cstr) - 1)
+                    copy_len = (long)sizeof(stat_cstr) - 1;
+                octstr_get_many_chars(stat_cstr, short_message, curr + 5, copy_len);
+            }
         }
         if ((curr = octstr_search(short_message, octstr_imm("err:"), 0)) != -1)
         {
             if ((vpos = octstr_search_char(short_message, ' ', curr)) == -1)
                 vpos = octstr_len(short_message);
-            if (vpos - curr > 0)
-                octstr_get_many_chars(err_cstr, short_message, curr + 4, vpos - curr - 4);
+            if (vpos - curr > 0) {
+                long copy_len = vpos - curr - 4;
+                if (copy_len > (long)sizeof(err_cstr) - 1)
+                    copy_len = (long)sizeof(err_cstr) - 1;
+                octstr_get_many_chars(err_cstr, short_message, curr + 4, copy_len);
+            }
         }
     }
     if ((curr = octstr_case_search(short_message, octstr_imm("text:"), 0)) != -1)
     {
         if ((vpos = octstr_search_char(short_message, '\0', curr)) == -1)
             vpos = octstr_len(short_message);
-        if (vpos - curr > 0)
-            octstr_get_many_chars(text_cstr, short_message, curr + 5, vpos - curr - 5);
+        if (vpos - curr > 0) {
+            long copy_len = vpos - curr - 5;
+            if (copy_len > (long)sizeof(text_cstr) - 1)
+                copy_len = (long)sizeof(text_cstr) - 1;
+            octstr_get_many_chars(text_cstr, short_message, curr + 5, copy_len);
+        }
     }
     *id = octstr_create(id_cstr);
     *sub = strtol(sub_cstr, NULL, 16);

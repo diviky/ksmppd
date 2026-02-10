@@ -459,6 +459,16 @@ void smpp_queues_handle_submit_sm(SMPPQueuedPDU *smpp_queued_pdu) {
                 smpp_queued_response_pdu->pdu->u.submit_sm_resp.message_id = smpp_uuid_get(msg->sms.id);
                 
                 if(smpp_esme->simulate_deliver_every && ((simulation_count % smpp_esme->simulate_deliver_every) == 0)) {
+                    Octstr *original_msgdata = msg->sms.msgdata;
+                    Octstr *dlr_msgdata;
+                    Octstr *dlr_id;
+                    Octstr *dlr_stat;
+                    Octstr *dlr_text = original_msgdata ? original_msgdata : octstr_imm("");
+                    unsigned int dlr_err = 0;
+                    char submit_date_c_str[13] = {'\0'};
+                    char done_date_c_str[13] = {'\0'};
+                    struct tm tm_tmp;
+
                     msg->sms.sms_type = report_mo;
                     
                     msg->sms.dlr_mask = smpp_esme->simulate_dlr_fail ? DLR_FAIL : DLR_SUCCESS;
@@ -470,7 +480,27 @@ void smpp_queues_handle_submit_sm(SMPPQueuedPDU *smpp_queued_pdu) {
                     smpp_queues_add_outbound(smpp_queued_response_pdu);
                     response_sent = 1;
                     
+                    tm_tmp = gw_localtime(msg->sms.time);
+                    gw_strftime(submit_date_c_str, sizeof(submit_date_c_str), "%y%m%d%H%M%S", &tm_tmp);
+                    tm_tmp = gw_localtime(time(NULL));
+                    gw_strftime(done_date_c_str, sizeof(done_date_c_str), "%y%m%d%H%M%S", &tm_tmp);
+                    dlr_stat = smpp_esme->simulate_dlr_fail ? octstr_imm("UNDELIV") : octstr_imm("DELIVRD");
+                    dlr_err = smpp_esme->simulate_dlr_fail ? 1 : 0;
+                    dlr_id = smpp_uuid_get(msg->sms.id);
+                    dlr_msgdata = octstr_format("id:%S sub:001 dlvrd:%s submit date:%s done date:%s stat:%S err:%03x text:%S",
+                                                dlr_id,
+                                                smpp_esme->simulate_dlr_fail ? "000" : "001",
+                                                submit_date_c_str,
+                                                done_date_c_str,
+                                                dlr_stat,
+                                                dlr_err,
+                                                dlr_text);
+                    octstr_destroy(dlr_id);
+                    msg->sms.msgdata = dlr_msgdata;
+
                     queued_outbound_pdus = smpp_pdu_msg_to_pdu(smpp_esme, msg);
+                    msg->sms.msgdata = original_msgdata;
+                    octstr_destroy(dlr_msgdata);
                     
                     
                     while((pdu = gwlist_consume(queued_outbound_pdus)) != NULL) {                        
