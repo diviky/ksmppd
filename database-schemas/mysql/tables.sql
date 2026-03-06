@@ -60,6 +60,26 @@ CREATE TABLE `smpp_store` (
   KEY `sms_type` (`sms_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
+-- DLR table for database-store-primary mode: external systems insert DLRs here,
+-- ksmppd polls and delivers to ESMEs. message_id matches submit_sm_resp message_id.
+CREATE TABLE `smpp_dlr` (
+  `global_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `message_id` varchar(128) NOT NULL,
+  `service` varchar(64) NOT NULL,
+  `status` varchar(16) DEFAULT 'DELIVRD',
+  `err_code` int(11) DEFAULT 0,
+  `submit_date` varchar(20) DEFAULT NULL,
+  `done_date` varchar(20) DEFAULT NULL,
+  `destination_addr` varchar(32) DEFAULT NULL,
+  `source_addr` varchar(32) DEFAULT NULL,
+  `smsc_id` varchar(64) DEFAULT NULL,
+  `text` text DEFAULT NULL,
+  `processed` tinyint(1) DEFAULT 0,
+  PRIMARY KEY (`global_id`),
+  KEY `service_processed` (`service`(16), `processed`),
+  KEY `message_id` (`message_id`(32))
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
 CREATE TABLE `smpp_user` (
   `system_id` varchar(15) NOT NULL,
   `password` varchar(64) NOT NULL,

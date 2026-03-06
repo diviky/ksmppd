@@ -82,10 +82,12 @@ extern "C" {
         int (*add_message)(SMPPServer *context, Msg *msg);      
         int (*add_pdu)(SMPPServer *context, SMPPQueuedPDU *smpp_queued_pdu);      
         List *(*get_stored)(SMPPServer *context, long sms_type, Octstr *service, long limit);
+        List *(*get_dlrs)(SMPPServer *context, Octstr *service, long limit);
         List *(*get_stored_pdu)(SMPPServer *context, Octstr *service, long limit);
         List *(*get_routes)(SMPPServer *context, int direction, Octstr *service);
         int (*deduct_credit)(SMPPServer *context, Octstr *service, double value);
         int (*delete)(SMPPServer *context, unsigned long global_id, int temporary);
+        int (*delete_dlr)(SMPPServer *context, unsigned long global_id);
         List *(*get_esmes_with_queued)(SMPPServer *smpp_server);
         void (*shutdown)(SMPPServer *context);
         void *context;
@@ -112,12 +114,14 @@ extern "C" {
     int smpp_database_add_message(SMPPServer *smpp_server, Msg *msg);
     int smpp_database_add_pdu(SMPPServer *smpp_server, SMPPQueuedPDU *smpp_queued_pdu);
     List *smpp_database_get_stored(SMPPServer *smpp_server, long sms_type, Octstr *service, long limit);
+    List *smpp_database_get_dlrs(SMPPServer *smpp_server, Octstr *service, long limit);
     List *smpp_database_get_stored_pdu(SMPPServer *smpp_server, Octstr *service, long limit);
     List *smpp_database_get_routes(SMPPServer *smpp_server, int direction, Octstr *service);
     int smpp_database_deduct_credit(SMPPServer *smpp_server, Octstr *service, double value);
     List *smpp_database_get_esmes_with_queued(SMPPServer *smpp_server);
     
     int smpp_database_remove(SMPPServer *smpp_server, unsigned long global_id, int temporary);
+    int smpp_database_remove_dlr(SMPPServer *smpp_server, unsigned long global_id);
 
 
 #ifdef __cplusplus

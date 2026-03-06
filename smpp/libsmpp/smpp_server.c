@@ -88,6 +88,7 @@ SMPPServer *smpp_server_create() {
     smpp_server->database_pdu_table = NULL;
     smpp_server->database_route_table = NULL;
     smpp_server->database_store_table = NULL;
+    smpp_server->database_dlr_table = NULL;
     smpp_server->database_user_table = NULL;
     smpp_server->database_version_table = NULL;
     
@@ -109,6 +110,7 @@ SMPPServer *smpp_server_create() {
 
     smpp_server->default_max_open_acks = SMPP_ESME_DEFAULT_MAX_OPEN_ACKS;
     smpp_server->wait_ack_action = SMPP_WAITACK_DISCONNECT;
+    smpp_server->database_store_primary = 0;
 
     return smpp_server;
 }
@@ -127,6 +129,7 @@ void smpp_server_destroy(SMPPServer *smpp_server) {
     octstr_destroy(smpp_server->database_pdu_table);
     octstr_destroy(smpp_server->database_route_table);
     octstr_destroy(smpp_server->database_store_table);
+    octstr_destroy(smpp_server->database_dlr_table);
     octstr_destroy(smpp_server->database_user_table);
     octstr_destroy(smpp_server->database_version_table);
     octstr_destroy(smpp_server->config_filename);
@@ -228,6 +231,7 @@ int smpp_server_reconfigure(SMPPServer *smpp_server) {
                 smpp_server->database_type = cfg_get(grp, octstr_imm("database-type"));
                 smpp_server->database_config = cfg_get(grp, octstr_imm("database-config"));
                 smpp_server->database_store_table = cfg_get(grp, octstr_imm("database-store-table"));
+                smpp_server->database_dlr_table = cfg_get(grp, octstr_imm("database-dlr-table"));
                 smpp_server->database_user_table = cfg_get(grp, octstr_imm("database-user-table"));
                 smpp_server->database_pdu_table = cfg_get(grp, octstr_imm("database-pdu-table"));
                 smpp_server->database_route_table = cfg_get(grp, octstr_imm("database-route-table"));
@@ -238,6 +242,10 @@ int smpp_server_reconfigure(SMPPServer *smpp_server) {
                 }
                 
                 cfg_get_bool(&smpp_server->database_enable_queue, grp, octstr_imm("database-enable-queue"));
+                cfg_get_bool(&smpp_server->database_store_primary, grp, octstr_imm("database-store-primary"));
+                if(smpp_server->database_store_primary) {
+                    info(0, "Database store primary mode: MT messages stored in database, ACK sent immediately");
+                }
                 
                 smpp_server->database = smpp_database_init(smpp_server);
                 

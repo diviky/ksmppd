@@ -100,6 +100,7 @@ SMPPDatabase *smpp_database_create() {
     smpp_database->context = NULL;
     smpp_database->add_pdu = NULL;
     smpp_database->delete = NULL;
+    smpp_database->delete_dlr = NULL;
     smpp_database->get_stored = NULL;
     smpp_database->get_stored_pdu = NULL;
     smpp_database->pending_msg = NULL;
@@ -144,6 +145,14 @@ List *smpp_database_get_stored(SMPPServer *smpp_server, long sms_type, Octstr *s
     return gwlist_create(); /* Caller will destroy */
 }
 
+List *smpp_database_get_dlrs(SMPPServer *smpp_server, Octstr *service, long limit) {
+    SMPPDatabase *smpp_database = smpp_server->database;
+    if(smpp_database->get_dlrs) {
+        return smpp_database->get_dlrs(smpp_server, service, limit);
+    }
+    return gwlist_create(); /* Caller will destroy */
+}
+
 List *smpp_database_get_stored_pdu(SMPPServer *smpp_server, Octstr *service, long limit) {
     SMPPDatabase *smpp_database = smpp_server->database;
     if(smpp_database->get_stored_pdu) {
@@ -156,6 +165,14 @@ int smpp_database_remove(SMPPServer *smpp_server, unsigned long global_id, int t
     SMPPDatabase *smpp_database = smpp_server->database;
     if(smpp_database->delete) {
         return smpp_database->delete(smpp_server, global_id, temporary);
+    }
+    return 0;
+}
+
+int smpp_database_remove_dlr(SMPPServer *smpp_server, unsigned long global_id) {
+    SMPPDatabase *smpp_database = smpp_server->database;
+    if(smpp_database->delete_dlr) {
+        return smpp_database->delete_dlr(smpp_server, global_id);
     }
     return 0;
 }

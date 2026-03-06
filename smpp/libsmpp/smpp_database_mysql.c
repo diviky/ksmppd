@@ -71,6 +71,7 @@
 #include "smpp_bearerbox.h"
 #include "smpp_esme.h"
 #include "smpp_queued_pdu.h"
+#include "gw/dlr.h"
 #include "smpp_database.h"
 #include "smpp_route.h"
 
@@ -253,7 +254,12 @@ List *smpp_database_mysql_get_esmes_with_queued(SMPPServer *smpp_server) {
 
     DBPoolConn *conn;
 
-    sql = octstr_format("SELECT LOWER(system_id) FROM %S UNION DISTINCT SELECT LOWER(service) FROM %S", smpp_server->database_pdu_table, smpp_server->database_store_table);
+    if(octstr_len(smpp_server->database_dlr_table)) {
+        sql = octstr_format("SELECT LOWER(system_id) FROM %S UNION DISTINCT SELECT LOWER(service) FROM %S UNION DISTINCT SELECT LOWER(service) FROM %S",
+            smpp_server->database_pdu_table, smpp_server->database_store_table, smpp_server->database_dlr_table);
+    } else {
+        sql = octstr_format("SELECT LOWER(system_id) FROM %S UNION DISTINCT SELECT LOWER(service) FROM %S", smpp_server->database_pdu_table, smpp_server->database_store_table);
+    }
 
     conn = dbpool_conn_consume(pool);
 
@@ -468,6 +474,127 @@ List *smpp_database_mysql_get_stored(SMPPServer *smpp_server, long sms_type, Oct
     return messages;
 }
 
+List *smpp_database_mysql_get_dlrs(SMPPServer *smpp_server, Octstr *service, long limit) {
+    SMPPDatabase *smpp_database = smpp_server->database;
+    if(!octstr_len(smpp_server->database_dlr_table)) {
+        return gwlist_create();
+    }
+    DBPool *pool = smpp_database->context;
+    Octstr *sql;
+    List *messages = gwlist_create();
+    List *results = NULL;
+    List *row;
+    List *binds = gwlist_create();
+    SMPPDatabaseMsg *smpp_database_msg;
+    Msg *msg;
+    DBPoolConn *conn;
+    long dlr_mask;
+    Octstr *msgdata;
+    Octstr *dlr_url;
+    Octstr *submit_date_os;
+    Octstr *done_date_os;
+    Octstr *text_os;
+
+    if(!limit) {
+        limit = SMPP_DATABASE_BATCH_LIMIT;
+    }
+
+    sql = octstr_format("SELECT global_id, message_id, service, status, err_code, submit_date, done_date, "
+                       "destination_addr, source_addr, smsc_id, text FROM %S "
+                       "WHERE service = ? AND processed = 0 LIMIT %ld",
+                       smpp_server->database_dlr_table, limit);
+
+    gwlist_produce(binds, octstr_duplicate(service));
+
+    conn = dbpool_conn_consume(pool);
+    dbpool_conn_select(conn, sql, binds, &results);
+    dbpool_conn_produce(conn);
+
+    octstr_destroy(sql);
+    gwlist_destroy(binds, octstr_destroy_item);
+
+    if (gwlist_len(results) > 0) {
+        while ((row = gwlist_extract_first(results)) != NULL) {
+            smpp_database_msg = smpp_database_msg_create();
+            smpp_database_msg->global_id = atol(octstr_get_cstr(gwlist_get(row, 0)));
+            smpp_database_msg->smpp_server = smpp_server;
+
+            msg = msg_create(sms);
+            msg->sms.sms_type = report_mo;
+            msg->sms.service = octstr_duplicate(service);
+            msg->sms.receiver = octstr_duplicate(gwlist_get(row, 7) ? gwlist_get(row, 7) : octstr_imm(""));
+            msg->sms.sender = octstr_duplicate(gwlist_get(row, 8) ? gwlist_get(row, 8) : octstr_imm(""));
+            msg->sms.smsc_id = octstr_duplicate(gwlist_get(row, 9) ? gwlist_get(row, 9) : octstr_imm(""));
+            msg->sms.time = time(NULL);
+
+            submit_date_os = gwlist_get(row, 5);
+            done_date_os = gwlist_get(row, 6);
+            text_os = gwlist_get(row, 10);
+            if(!submit_date_os) submit_date_os = octstr_imm("00000000000000");
+            if(!done_date_os) done_date_os = octstr_imm("00000000000000");
+            if(!text_os) text_os = octstr_imm("");
+
+            if(gwlist_get(row, 3) && octstr_case_compare(gwlist_get(row, 3), octstr_imm("DELIVRD")) == 0) {
+                dlr_mask = DLR_SUCCESS;
+            } else {
+                dlr_mask = DLR_FAIL;
+            }
+            msg->sms.dlr_mask = dlr_mask;
+
+            {
+                Octstr *stat_os = gwlist_get(row, 3);
+                Octstr *err_os = gwlist_get(row, 4);
+                Octstr *dlvrd_str = (dlr_mask == DLR_SUCCESS) ? octstr_imm("001") : octstr_imm("000");
+                unsigned int err_val = 0;
+                if(err_os && octstr_len(err_os)) {
+                    long tmp;
+                    octstr_parse_long(&tmp, err_os, 0, 10);
+                    err_val = (unsigned int)tmp;
+                }
+                msgdata = octstr_format("id:%S sub:001 dlvrd:%S submit date:%S done date:%S stat:%S err:%03x text:%S",
+                    gwlist_get(row, 1),
+                    dlvrd_str,
+                    submit_date_os,
+                    done_date_os,
+                    stat_os && octstr_len(stat_os) ? stat_os : octstr_imm("DELIVRD"),
+                    err_val,
+                    text_os);
+            }
+            msg->sms.msgdata = msgdata;
+
+            dlr_url = octstr_format("%S|%ld|%S", service, (long)msg->sms.time, gwlist_get(row, 1));
+            msg->sms.dlr_url = dlr_url;
+
+            smpp_database_msg->msg = msg;
+            gwlist_produce(messages, smpp_database_msg);
+            gwlist_destroy(row, octstr_destroy_item);
+        }
+    }
+    gwlist_destroy(results, NULL);
+
+    return messages;
+}
+
+int smpp_database_mysql_remove_dlr(SMPPServer *smpp_server, unsigned long global_id) {
+    SMPPDatabase *smpp_database = smpp_server->database;
+    if(!octstr_len(smpp_server->database_dlr_table)) {
+        return 0;
+    }
+    DBPool *pool = smpp_database->context;
+    Octstr *sql;
+    DBPoolConn *conn;
+    int res = 0;
+
+    sql = octstr_format("UPDATE %S SET processed = 1 WHERE global_id = %lu", smpp_server->database_dlr_table, global_id);
+    conn = dbpool_conn_consume(pool);
+    if (dbpool_conn_update(conn, sql, NULL) >= 0) {
+        res = 1;
+    }
+    dbpool_conn_produce(conn);
+    octstr_destroy(sql);
+    return res;
+}
+
 int smpp_database_mysql_init_tables(SMPPServer *smpp_server, SMPPDatabase *smpp_database) {
     Octstr *sql;
     DBPool *pool = smpp_database->context;
@@ -554,6 +681,28 @@ int smpp_database_mysql_init_tables(SMPPServer *smpp_server, SMPPDatabase *smpp_
     }
 
     octstr_destroy(sql);
+
+    if(octstr_len(smpp_server->database_dlr_table)) {
+        sql = octstr_format("CREATE TABLE IF NOT EXISTS %S ( "
+            "`global_id` bigint unsigned not null auto_increment primary key, "
+            "`message_id` varchar(128) not null, "
+            "`service` varchar(64) not null, "
+            "`status` varchar(16) default 'DELIVRD', "
+            "`err_code` int default 0, "
+            "`submit_date` varchar(20) default null, "
+            "`done_date` varchar(20) default null, "
+            "`destination_addr` varchar(32) default null, "
+            "`source_addr` varchar(32) default null, "
+            "`smsc_id` varchar(64) default null, "
+            "`text` text default null, "
+            "`processed` tinyint default 0, "
+            "KEY `service_processed` (`service`(16), `processed`), "
+            "KEY `message_id` (`message_id`(32)));", smpp_server->database_dlr_table);
+        if (dbpool_conn_update(conn, sql, NULL) == -1) {
+            error(0, "Query error creating smpp_dlr table '%s'", octstr_get_cstr(sql));
+        }
+        octstr_destroy(sql);
+    }
 
     sql = octstr_format("CREATE TABLE IF NOT EXISTS %S ( "
       "`system_id` varchar(15) NOT NULL, "
@@ -1061,7 +1210,9 @@ found:
     smpp_database->authenticate = smpp_database_mysql_authenticate;
     smpp_database->add_message = smpp_database_mysql_add_message;
     smpp_database->get_stored = smpp_database_mysql_get_stored;
+    smpp_database->get_dlrs = smpp_database_mysql_get_dlrs;
     smpp_database->delete = smpp_database_mysql_remove;
+    smpp_database->delete_dlr = smpp_database_mysql_remove_dlr;
     smpp_database->add_pdu = smpp_database_mysql_add_pdu;
     smpp_database->get_stored_pdu = smpp_database_mysql_get_stored_pdu;
     smpp_database->get_routes = smpp_database_mysql_get_routes;
@@ -1082,6 +1233,12 @@ found:
         warning(0, "No 'database-store-table' specified, using default 'smpp_store'");
         octstr_destroy(smpp_server->database_store_table);
         smpp_server->database_store_table = octstr_create("smpp_store");
+    }
+
+    if(!smpp_server->database_dlr_table || !octstr_len(smpp_server->database_dlr_table)) {
+        octstr_destroy(smpp_server->database_dlr_table);
+        smpp_server->database_dlr_table = octstr_create("smpp_dlr");
+        info(0, "Using default 'smpp_dlr' table for DLR storage (set database-dlr-table to empty to disable)");
     }
 
      if(!octstr_len(smpp_server->database_pdu_table)) {

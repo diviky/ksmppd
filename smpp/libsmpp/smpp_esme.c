@@ -308,11 +308,19 @@ void smpp_esme_db_queue_callback(void *context, long status) {
             }
         }
         /* These SHOULD be the only two states if database queueing is active */
-        smpp_database_remove(smpp_server, smpp_queued_pdu->sequence, 0);
+        if(smpp_queued_pdu->from_dlr_table) {
+            smpp_database_remove_dlr(smpp_server, smpp_queued_pdu->sequence);
+        } else {
+            smpp_database_remove(smpp_server, smpp_queued_pdu->sequence, 0);
+        }
     } else {
         /* Shift this PDU to the PDU tables so we don't have to build it again */
         smpp_database_add_pdu(smpp_server, smpp_queued_pdu);
-        smpp_database_remove(smpp_server, smpp_queued_pdu->sequence, 0);
+        if(smpp_queued_pdu->from_dlr_table) {
+            smpp_database_remove_dlr(smpp_server, smpp_queued_pdu->sequence);
+        } else {
+            smpp_database_remove(smpp_server, smpp_queued_pdu->sequence, 0);
+        }
     }
     smpp_queued_pdu_destroy(smpp_queued_pdu);
 }
@@ -323,6 +331,7 @@ List *smpp_esme_global_get_queued(SMPPServer *smpp_server) {
     List *queues = gwlist_create();
     List *esme_queue;
     List *msg_queue;
+    List *dlr_queue;
     List *pdus;
     long i, num;
     SMPPEsme *smpp_esme;
@@ -354,8 +363,9 @@ List *smpp_esme_global_get_queued(SMPPServer *smpp_server) {
             gwlist_destroy(esme_queue, NULL);
             
             if(limit > 0) {
-                /* Still space for these */
+                /* Still space for these - get report_mo from smpp_store and DLRs from smpp_dlr */
                 msg_queue = smpp_database_get_stored(smpp_server, report_mo, smpp_esme->system_id, limit);
+                dlr_queue = smpp_database_get_dlrs(smpp_server, smpp_esme->system_id, limit - gwlist_len(msg_queue));
                 while((smpp_database_msg = gwlist_consume(msg_queue)) != NULL) {
                     pdus = smpp_pdu_msg_to_pdu(smpp_esme, smpp_database_msg->msg);
                     if(pdus == NULL) {
@@ -368,6 +378,7 @@ List *smpp_esme_global_get_queued(SMPPServer *smpp_server) {
                         smpp_queued_pdu->pdu = pdu;
                         smpp_queued_pdu->smpp_server = smpp_esme->smpp_server;
                         smpp_queued_pdu->sequence = smpp_database_msg->global_id;
+                        smpp_queued_pdu->from_dlr_table = 0;
                         smpp_queued_pdu->system_id = octstr_duplicate(smpp_esme->system_id);
                         smpp_queued_pdu->bearerbox_id = octstr_format("%ld", smpp_database_msg->global_id);
                         smpp_queued_pdu->smpp_esme = smpp_esme;
@@ -379,6 +390,30 @@ List *smpp_esme_global_get_queued(SMPPServer *smpp_server) {
                     smpp_database_msg_destroy(smpp_database_msg);
                 }
                 gwlist_destroy(msg_queue, NULL);
+                while((smpp_database_msg = gwlist_consume(dlr_queue)) != NULL) {
+                    pdus = smpp_pdu_msg_to_pdu(smpp_esme, smpp_database_msg->msg);
+                    if(pdus == NULL) {
+			smpp_database_msg_destroy(smpp_database_msg);
+			smpp_database_remove_dlr(smpp_esme->smpp_server, smpp_database_msg->global_id);
+                        continue;
+                    }
+                    while((pdu = gwlist_consume(pdus)) != NULL) {
+                        smpp_queued_pdu = smpp_queued_pdu_create();
+                        smpp_queued_pdu->pdu = pdu;
+                        smpp_queued_pdu->smpp_server = smpp_esme->smpp_server;
+                        smpp_queued_pdu->sequence = smpp_database_msg->global_id;
+                        smpp_queued_pdu->from_dlr_table = 1;
+                        smpp_queued_pdu->system_id = octstr_duplicate(smpp_esme->system_id);
+                        smpp_queued_pdu->bearerbox_id = octstr_format("%ld", smpp_database_msg->global_id);
+                        smpp_queued_pdu->smpp_esme = smpp_esme;
+                        smpp_queued_pdu->context = smpp_queued_pdu;
+                        smpp_queued_pdu->callback = smpp_esme_db_queue_callback;
+                        gwlist_produce(queues, smpp_queued_pdu);
+                    }
+                    gwlist_destroy(pdus, NULL);
+                    smpp_database_msg_destroy(smpp_database_msg);
+                }
+                gwlist_destroy(dlr_queue, NULL);
             }
             
             

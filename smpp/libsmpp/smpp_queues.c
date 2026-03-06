@@ -264,7 +264,19 @@ void smpp_queues_submit_routing_done(void *context, SMPPRouteStatus *smpp_route_
             
             smpp_queues_msg_set_dlr_url(smpp_queued_response_pdu->smpp_esme, smpp_queued_response_pdu->msg);
             
-            smpp_bearerbox_add_message(smpp_queued_response_pdu->smpp_esme->smpp_server, smpp_queued_response_pdu->msg, smpp_queues_callback_submit_sm, smpp_queued_response_pdu);
+            if(smpp_queued_response_pdu->smpp_esme->smpp_server->database_store_primary) {
+                if(smpp_database_add_message(smpp_queued_response_pdu->smpp_esme->smpp_server, smpp_queued_response_pdu->msg)) {
+                    msg_destroy(smpp_queued_response_pdu->msg);
+                    smpp_queued_response_pdu->msg = NULL;
+                    smpp_queues_callback_submit_sm(smpp_queued_response_pdu, 0);
+                } else {
+                    msg_destroy(smpp_queued_response_pdu->msg);
+                    smpp_queued_response_pdu->msg = NULL;
+                    smpp_queues_callback_submit_sm(smpp_queued_response_pdu, SMPP_ESME_RSYSERR);
+                }
+            } else {
+                smpp_bearerbox_add_message(smpp_queued_response_pdu->smpp_esme->smpp_server, smpp_queued_response_pdu->msg, smpp_queues_callback_submit_sm, smpp_queued_response_pdu);
+            }
         } else {
             counter_increase(smpp_queued_response_pdu->smpp_esme->error_counter);
             counter_increase(smpp_queued_response_pdu->smpp_esme->smpp_esme_global->error_counter);
@@ -294,7 +306,19 @@ void smpp_queues_submit_routing_done(void *context, SMPPRouteStatus *smpp_route_
 
                 smpp_queues_msg_set_dlr_url(smpp_queued_response_pdu->smpp_esme, smpp_queued_response_pdu->msg);
 
-                smpp_bearerbox_add_message(smpp_queued_response_pdu->smpp_esme->smpp_server, smpp_queued_response_pdu->msg, smpp_queues_callback_submit_sm, smpp_queued_response_pdu);
+                if(smpp_queued_response_pdu->smpp_esme->smpp_server->database_store_primary) {
+                    if(smpp_database_add_message(smpp_queued_response_pdu->smpp_esme->smpp_server, smpp_queued_response_pdu->msg)) {
+                        msg_destroy(smpp_queued_response_pdu->msg);
+                        smpp_queued_response_pdu->msg = NULL;
+                        smpp_queues_callback_submit_sm(smpp_queued_response_pdu, 0);
+                    } else {
+                        msg_destroy(smpp_queued_response_pdu->msg);
+                        smpp_queued_response_pdu->msg = NULL;
+                        smpp_queues_callback_submit_sm(smpp_queued_response_pdu, SMPP_ESME_RSYSERR);
+                    }
+                } else {
+                    smpp_bearerbox_add_message(smpp_queued_response_pdu->smpp_esme->smpp_server, smpp_queued_response_pdu->msg, smpp_queues_callback_submit_sm, smpp_queued_response_pdu);
+                }
             } else {
                 counter_increase(smpp_queued_response_pdu->smpp_esme->error_counter);
                 counter_increase(smpp_queued_response_pdu->smpp_esme->smpp_esme_global->error_counter);
@@ -337,7 +361,19 @@ void smpp_queues_data_sm_routing_done(void *context, SMPPRouteStatus *smpp_route
                         octstr_get_cstr(smpp_queued_response_pdu->msg->sms.receiver),
                         octstr_get_cstr(smpp_queued_response_pdu->msg->sms.smsc_id), octstr_len(smpp_queued_response_pdu->msg->sms.msgdata),submit_date_c_str);
 
-            smpp_bearerbox_add_message(smpp_queued_response_pdu->smpp_esme->smpp_server, smpp_queued_response_pdu->msg, smpp_queues_callback_data_sm, smpp_queued_response_pdu);
+            if(smpp_queued_response_pdu->smpp_esme->smpp_server->database_store_primary) {
+                if(smpp_database_add_message(smpp_queued_response_pdu->smpp_esme->smpp_server, smpp_queued_response_pdu->msg)) {
+                    msg_destroy(smpp_queued_response_pdu->msg);
+                    smpp_queued_response_pdu->msg = NULL;
+                    smpp_queues_callback_data_sm(smpp_queued_response_pdu, 0);
+                } else {
+                    msg_destroy(smpp_queued_response_pdu->msg);
+                    smpp_queued_response_pdu->msg = NULL;
+                    smpp_queues_callback_data_sm(smpp_queued_response_pdu, SMPP_ESME_RSYSERR);
+                }
+            } else {
+                smpp_bearerbox_add_message(smpp_queued_response_pdu->smpp_esme->smpp_server, smpp_queued_response_pdu->msg, smpp_queues_callback_data_sm, smpp_queued_response_pdu);
+            }
         } else {
             counter_increase(smpp_queued_response_pdu->smpp_esme->error_counter);
             counter_increase(smpp_queued_response_pdu->smpp_esme->smpp_esme_global->error_counter);
@@ -363,7 +399,19 @@ void smpp_queues_data_sm_routing_done(void *context, SMPPRouteStatus *smpp_route
                         octstr_get_cstr(smpp_queued_response_pdu->msg->sms.receiver),
                         octstr_get_cstr(smpp_queued_response_pdu->msg->sms.smsc_id), octstr_len(smpp_queued_response_pdu->msg->sms.msgdata),submit_date_c_str);
 
-                smpp_bearerbox_add_message(smpp_queued_response_pdu->smpp_esme->smpp_server, smpp_queued_response_pdu->msg, smpp_queues_callback_data_sm, smpp_queued_response_pdu);
+                if(smpp_queued_response_pdu->smpp_esme->smpp_server->database_store_primary) {
+                    if(smpp_database_add_message(smpp_queued_response_pdu->smpp_esme->smpp_server, smpp_queued_response_pdu->msg)) {
+                        msg_destroy(smpp_queued_response_pdu->msg);
+                        smpp_queued_response_pdu->msg = NULL;
+                        smpp_queues_callback_data_sm(smpp_queued_response_pdu, 0);
+                    } else {
+                        msg_destroy(smpp_queued_response_pdu->msg);
+                        smpp_queued_response_pdu->msg = NULL;
+                        smpp_queues_callback_data_sm(smpp_queued_response_pdu, SMPP_ESME_RSYSERR);
+                    }
+                } else {
+                    smpp_bearerbox_add_message(smpp_queued_response_pdu->smpp_esme->smpp_server, smpp_queued_response_pdu->msg, smpp_queues_callback_data_sm, smpp_queued_response_pdu);
+                }
             } else {
                 counter_increase(smpp_queued_response_pdu->smpp_esme->error_counter);
                 counter_increase(smpp_queued_response_pdu->smpp_esme->smpp_esme_global->error_counter);

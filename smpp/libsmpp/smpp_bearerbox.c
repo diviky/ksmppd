@@ -679,12 +679,12 @@ void smpp_bearerbox_requeue_thread(void *arg) {
         busy = 0;
         gw_rwlock_rdlock(smpp_bearerbox_state->lock);
         bearerbox = gwlist_search(smpp_bearerbox_state->bearerboxes, NULL, smpp_bearerbox_online);
-        if (bearerbox) {
+        if (bearerbox && !smpp_server->database_store_primary) {
             stored = smpp_database_get_stored(smpp_server, mt_push, NULL, 0);
 
-            while ((smpp_database_msg = gwlist_consume(stored)) != NULL) {                
+            while ((smpp_database_msg = gwlist_consume(stored)) != NULL) {
                 msg = smpp_database_msg->msg;
-                
+
                 if(msg->sms.sms_type == mt_push) {
                     debug("smpp.bearerbox.requeue.thread", 0, "Got MT message to requeue sender = %s receiver = %s", octstr_get_cstr(smpp_database_msg->msg->sms.sender), octstr_get_cstr(smpp_database_msg->msg->sms.receiver));
                     smpp_bearerbox_msg = smpp_bearerbox_msg_create(msg, smpp_bearerbox_requeue_result, smpp_database_msg);
@@ -698,7 +698,8 @@ void smpp_bearerbox_requeue_thread(void *arg) {
                 }
             }
             gwlist_destroy(stored, NULL);
-            
+        }
+        if (bearerbox || smpp_server->database_store_primary) {
             stored = smpp_database_get_stored(smpp_server, mo, NULL, 0);
 
             while ((smpp_database_msg = gwlist_consume(stored)) != NULL) {
@@ -780,8 +781,10 @@ void smpp_bearerbox_init(SMPPServer *smpp_server) {
             gwthread_create(smpp_bearerbox_inbound_thread, smpp_bearerbox);
             gwthread_create(smpp_bearerbox_outbound_thread, smpp_bearerbox);
         }
-    } else {
+    } else if (!smpp_server->database_store_primary) {
         panic(0, "No valid 'bearerbox-connection' configuration specified, cannot continue");
+    } else {
+        info(0, "Database store primary mode: no bearerbox connections configured");
     }
 
     smpp_server->bearerbox = smpp_bearerbox_state;
@@ -795,11 +798,13 @@ void smpp_bearerbox_init(SMPPServer *smpp_server) {
 
 void smpp_bearerbox_shutdown(SMPPServer *smpp_server) {
     SMPPBearerboxState *smpp_bearerbox_state = smpp_server->bearerbox;
-    gw_prioqueue_remove_producer(smpp_bearerbox_state->outbound_queue);
-    gw_prioqueue_remove_producer(smpp_bearerbox_state->inbound_queue);
+    if (gwlist_len(smpp_bearerbox_state->bearerboxes) > 0) {
+        gw_prioqueue_remove_producer(smpp_bearerbox_state->outbound_queue);
+        gw_prioqueue_remove_producer(smpp_bearerbox_state->inbound_queue);
 
-    gwthread_join_every(smpp_bearerbox_outbound_thread);
-    gwthread_join_every(smpp_bearerbox_inbound_thread);
+        gwthread_join_every(smpp_bearerbox_outbound_thread);
+        gwthread_join_every(smpp_bearerbox_inbound_thread);
+    }
     gwthread_join_every(smpp_bearerbox_requeue_thread);
 
     gw_rwlock_destroy(smpp_bearerbox_state->lock);

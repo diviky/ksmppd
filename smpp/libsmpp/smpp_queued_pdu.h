@@ -85,6 +85,7 @@ extern "C" {
         long sequence;
         unsigned long global_id;
         Msg *msg;
+        int from_dlr_table;  /* 1 if from smpp_dlr table, use remove_dlr on success */
     } SMPPQueuedPDU;
     
     SMPPQueuedPDU *smpp_queued_pdu_create();

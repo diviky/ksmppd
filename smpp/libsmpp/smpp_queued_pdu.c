@@ -88,6 +88,7 @@ SMPPQueuedPDU *smpp_queued_pdu_create() {
     smpp_queued_pdu->time_sent = 0;
     smpp_queued_pdu->sequence = 0;
     smpp_queued_pdu->global_id = 0;
+    smpp_queued_pdu->from_dlr_table = 0;
     return smpp_queued_pdu;
 }
 
