@@ -93,11 +93,81 @@
     gw_free(smpp_blocked_ip);
  }
 
+/*
+ * ip-blocklist-exempt-ips:
+ *   - "*" or "*.*.*.*" exempts all IPv4 addresses.
+ *   - Space-separated entries; each entry is either a literal (matched if the
+ *     client IP appears as a substring of the full string, as before) or an
+ *     IPv4 pattern with '*' per octet, e.g. 172.31.*.* for 172.31.0.0/16 style.
+ */
+static int smpp_listener_ipv4_wildcard_match(Octstr *pattern, Octstr *ip)
+{
+    List *pp, *ipp;
+    int i;
+    Octstr *p, *o;
+
+    pp = octstr_split(pattern, octstr_imm("."));
+    ipp = octstr_split(ip, octstr_imm("."));
+    if (gwlist_len(pp) != 4 || gwlist_len(ipp) != 4) {
+        gwlist_destroy(pp, octstr_destroy_item);
+        gwlist_destroy(ipp, octstr_destroy_item);
+        return 0;
+    }
+    for (i = 0; i < 4; i++) {
+        p = gwlist_get(pp, i);
+        o = gwlist_get(ipp, i);
+        if (octstr_len(p) == 1 && octstr_get_char(p, 0) == '*')
+            continue;
+        if (octstr_compare(p, o) != 0) {
+            gwlist_destroy(pp, octstr_destroy_item);
+            gwlist_destroy(ipp, octstr_destroy_item);
+            return 0;
+        }
+    }
+    gwlist_destroy(pp, octstr_destroy_item);
+    gwlist_destroy(ipp, octstr_destroy_item);
+    return 1;
+}
+
+static int smpp_listener_ip_blocklist_exempt(SMPPServer *smpp_server, Octstr *ip)
+{
+    Octstr *ex = smpp_server->ip_blocklist_exempt_ips;
+    List *tokens;
+    int i, n;
+
+    if (ex == NULL || octstr_len(ex) == 0 || ip == NULL || octstr_len(ip) == 0)
+        return 0;
+    if (octstr_case_compare(ex, octstr_imm("*")) == 0)
+        return 1;
+    if (octstr_case_compare(ex, octstr_imm("*.*.*.*")) == 0)
+        return 1;
+    if (octstr_search(ex, ip, 0) > -1)
+        return 1;
+    if (octstr_search(ex, octstr_imm("*"), 0) < 0)
+        return 0;
+
+    tokens = octstr_split(ex, octstr_imm(" "));
+    n = gwlist_len(tokens);
+    for (i = 0; i < n; i++) {
+        Octstr *tok = gwlist_get(tokens, i);
+
+        if (octstr_len(tok) == 0)
+            continue;
+        if (octstr_search(tok, octstr_imm("*"), 0) >= 0
+            && smpp_listener_ipv4_wildcard_match(tok, ip)) {
+            gwlist_destroy(tokens, octstr_destroy_item);
+            return 1;
+        }
+    }
+    gwlist_destroy(tokens, octstr_destroy_item);
+    return 0;
+}
+
  void smpp_listener_auth_failed(SMPPServer *smpp_server, Octstr *ip) {
-    if (octstr_len(smpp_server->ip_blocklist_exempt_ips) && (octstr_search(smpp_server->ip_blocklist_exempt_ips, ip, 0) > -1)) {
+    if (smpp_listener_ip_blocklist_exempt(smpp_server, ip)) {
        debug("smpp.listener.auth.failed", 0, "IP address %s is exempt from the IP block list", octstr_get_cstr(ip));
        return;
-    }
+   }
     gw_rwlock_wrlock(smpp_server->ip_blocklist_lock);
     SMPPBlockedIp *smpp_blocked_ip = dict_get(smpp_server->ip_blocklist, ip);
     if(smpp_blocked_ip == NULL) {
@@ -113,6 +183,10 @@
  int smpp_listener_ip_is_blocked(SMPPServer *smpp_server, Octstr *ip) {
     int result = 0;
     long diff, remaining;
+
+    if (smpp_listener_ip_blocklist_exempt(smpp_server, ip))
+        return 0;
+
     gw_rwlock_wrlock(smpp_server->ip_blocklist_lock);
     SMPPBlockedIp *smpp_blocked_ip = dict_get(smpp_server->ip_blocklist, ip);
     if(smpp_blocked_ip != NULL) {
