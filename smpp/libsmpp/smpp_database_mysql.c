@@ -75,6 +75,64 @@
 #include "smpp_database.h"
 #include "smpp_route.h"
 
+/* dbpool_mysql passes string binds without MYSQL_BIND.length; embedded 0x00
+ * truncates. Store affected binary columns as percent-encoded ASCII (%XX per byte).
+ */
+static int smpp_db_hex_nibble(int c)
+{
+    if (c >= '0' && c <= '9')
+        return c - '0';
+    if (c >= 'A' && c <= 'F')
+        return c - 'A' + 10;
+    if (c >= 'a' && c <= 'f')
+        return c - 'a' + 10;
+    return -1;
+}
+
+static Octstr *smpp_db_url_encode_octstr(const Octstr *in)
+{
+    long i, len;
+    Octstr *out = octstr_create("");
+
+    if (in == NULL || (len = octstr_len(in)) == 0)
+        return out;
+    for (i = 0; i < len; i++) {
+        int b = (unsigned char) octstr_get_char(in, i);
+        octstr_format_append(out, "%%%02X", b);
+    }
+    return out;
+}
+
+/* If no '%', return duplicate (legacy rows). Else decode strict %XX triplets. */
+static Octstr *smpp_db_url_decode_octstr(const Octstr *s)
+{
+    long i, len;
+    Octstr *out;
+
+    if (s == NULL || (len = octstr_len(s)) == 0)
+        return octstr_create("");
+    if (octstr_search_char(s, '%', 0) < 0)
+        return octstr_duplicate(s);
+
+    out = octstr_create("");
+    for (i = 0; i < len;) {
+        if (i + 2 < len && octstr_get_char(s, i) == '%') {
+            int hi = smpp_db_hex_nibble(octstr_get_char(s, i + 1));
+            int lo = smpp_db_hex_nibble(octstr_get_char(s, i + 2));
+            if (hi < 0 || lo < 0) {
+                octstr_destroy(out);
+                return octstr_duplicate(s);
+            }
+            octstr_append_char(out, (char) ((hi << 4) | lo));
+            i += 3;
+        } else {
+            octstr_destroy(out);
+            return octstr_duplicate(s);
+        }
+    }
+    return out;
+}
+
 /*
  User table scheme:
 
@@ -223,7 +281,11 @@ List *smpp_database_mysql_get_stored_pdu(SMPPServer *smpp_server,  Octstr *servi
             smpp_queued_pdu->callback = smpp_database_mysql_queued_pdu_handler;
             smpp_queued_pdu->context = smpp_queued_pdu;
             smpp_queued_pdu->system_id = octstr_duplicate(service);
-            smpp_queued_pdu->pdu = smpp_pdu_unpack(service, gwlist_get(row, 3));
+            {
+                Octstr *pdu_os = smpp_db_url_decode_octstr(gwlist_get(row, 3));
+                smpp_queued_pdu->pdu = smpp_pdu_unpack(service, pdu_os);
+                octstr_destroy(pdu_os);
+            }
             smpp_queued_pdu->smpp_server = smpp_server;
 
 
@@ -454,6 +516,17 @@ List *smpp_database_mysql_get_stored(SMPPServer *smpp_server, long sms_type, Oct
 #include "gw/msg-decl.h"
                 default:
                     return NULL;
+            }
+
+            if (msg->sms.udhdata != NULL && octstr_len(msg->sms.udhdata) > 0) {
+                Octstr *d = smpp_db_url_decode_octstr(msg->sms.udhdata);
+                octstr_destroy(msg->sms.udhdata);
+                msg->sms.udhdata = d;
+            }
+            if (msg->sms.msgdata != NULL && octstr_len(msg->sms.msgdata) > 0) {
+                Octstr *d = smpp_db_url_decode_octstr(msg->sms.msgdata);
+                octstr_destroy(msg->sms.msgdata);
+                msg->sms.msgdata = d;
             }
 
             if(msg->sms.msgdata == NULL) {
@@ -877,7 +950,12 @@ int smpp_database_mysql_add_pdu(SMPPServer *smpp_server, SMPPQueuedPDU *smpp_que
 
     gwlist_produce(binds, octstr_duplicate(smpp_queued_pdu->system_id));
     gwlist_produce(binds, octstr_format("%ld", smpp_queued_pdu->time_sent));
-    gwlist_produce(binds, smpp_pdu_pack_without_command_length(smpp_queued_pdu->system_id, smpp_queued_pdu->pdu));
+    {
+        Octstr *packed = smpp_pdu_pack_without_command_length(smpp_queued_pdu->system_id, smpp_queued_pdu->pdu);
+        Octstr *enc = smpp_db_url_encode_octstr(packed);
+        octstr_destroy(packed);
+        gwlist_produce(binds, enc);
+    }
 
     conn = dbpool_conn_consume(pool);
 
@@ -909,6 +987,19 @@ int smpp_database_mysql_add_message(SMPPServer *smpp_server, Msg *msg) {
     DBPoolConn *conn;
 
     char id[UUID_STR_LEN + 1];
+
+    if (msg->type == sms) {
+        if (msg->sms.udhdata != NULL && octstr_len(msg->sms.udhdata) > 0) {
+            Octstr *e = smpp_db_url_encode_octstr(msg->sms.udhdata);
+            octstr_destroy(msg->sms.udhdata);
+            msg->sms.udhdata = e;
+        }
+        if (msg->sms.msgdata != NULL && octstr_len(msg->sms.msgdata) > 0) {
+            Octstr *e = smpp_db_url_encode_octstr(msg->sms.msgdata);
+            octstr_destroy(msg->sms.msgdata);
+            msg->sms.msgdata = e;
+        }
+    }
 
     sql = octstr_format("INSERT INTO %S ( ", smpp_server->database_store_table);
 

@@ -136,6 +136,15 @@ MULTI_GROUP(ksmppd-plugin,
     OCTSTR(args)
 )
 
+/* Kannel smpp_pdu_init(): maps vendor TLV tags for unpack/pack (see Kannel docs for smpp-tlv). */
+MULTI_GROUP(smpp-tlv,
+    OCTSTR(name)
+    OCTSTR(tag)
+    OCTSTR(length)
+    OCTSTR(type)
+    OCTSTR(smsc-id)
+)
+
 
 #undef OCTSTR
 #undef SINGLE_GROUP
