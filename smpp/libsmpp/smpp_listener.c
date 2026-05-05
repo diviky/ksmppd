@@ -224,8 +224,13 @@ static int smpp_listener_read_pdu(SMPPEsme *smpp_esme, long *len, SMPP_PDU **pdu
     if (*len == 0) {
         *len = smpp_pdu_read_len(conn);
         if (*len == -1) {
-            error(0, "SMPP[%s:%ld]: Client sent garbage, ignored.",
-                  octstr_get_cstr(smpp_esme->system_id), smpp_esme->id);
+            if (smpp_esme->authenticated) {
+                error(0, "SMPP[%s:%ld]: Client sent garbage, ignored.",
+                      smpp_esme_log_label(smpp_esme), smpp_esme->id);
+            } else {
+                debug("smpp.listener.probe", 0, "SMPP[%s:%ld]: Non-SMPP data before bind, ignored.",
+                      smpp_esme_log_label(smpp_esme), smpp_esme->id);
+            }
             *len = 0;
             return -2;
         } else if (*len == 0) {
@@ -245,11 +250,16 @@ static int smpp_listener_read_pdu(SMPPEsme *smpp_esme, long *len, SMPP_PDU **pdu
 
     *pdu = smpp_pdu_unpack(smpp_esme->system_id, os);
     if (*pdu == NULL) {
-        error(0, "SMPP[%s]: PDU unpacking failed.",
-              octstr_get_cstr(smpp_esme->system_id));
-        debug("smpp.listener.read.pdu", 0, "SMPP[%s]: Failed PDU follows.",
-              octstr_get_cstr(smpp_esme->system_id));
-        octstr_dump(os, 0);
+        if (smpp_esme->authenticated) {
+            error(0, "SMPP[%s]: PDU unpacking failed.",
+                  smpp_esme_log_label(smpp_esme));
+            debug("smpp.listener.read.pdu", 0, "SMPP[%s]: Failed PDU follows.",
+                  smpp_esme_log_label(smpp_esme));
+            octstr_dump(os, 0);
+        } else {
+            debug("smpp.listener.probe", 0, "SMPP[%s]: PDU unpack failed before bind (ignored).",
+                  smpp_esme_log_label(smpp_esme));
+        }
         octstr_destroy(os);
         return -2;
     }
@@ -279,7 +289,14 @@ void smpp_listener_event(evutil_socket_t fd, short what, void *arg)
             /* Just no data, who cares*/
         } else {
             if(result == -1) {
-                error(0, "Could not read PDU from %s status was %d", octstr_get_cstr(smpp_esme->system_id), result);
+                if (smpp_esme->authenticated) {
+                    error(0, "Could not read PDU from %s status was %d",
+                          smpp_esme_log_label(smpp_esme), result);
+                } else {
+                    debug("smpp.listener.probe", 0,
+                          "Connection closed before bind from %s (status %d)",
+                          smpp_esme_log_label(smpp_esme), result);
+                }
                 /* This is a connection error we can close this ESME */
                 /* Stop listening on this connection, its dead */
                 smpp_esme_stop_listening(smpp_esme);
@@ -293,11 +310,25 @@ void smpp_listener_event(evutil_socket_t fd, short what, void *arg)
                     debug("smpp.listener.event", 0, "Allowing background thread to clean up %ld", smpp_esme->id);
                 }
             } else if(result == -2) {
-                error(0, "Could not read PDU from %s status was %d", octstr_get_cstr(smpp_esme->system_id), result);
+                if (smpp_esme->authenticated) {
+                    error(0, "Could not read PDU from %s status was %d",
+                          smpp_esme_log_label(smpp_esme), result);
+                } else {
+                    debug("smpp.listener.probe", 0,
+                          "Invalid PDU before bind from %s (status %d)",
+                          smpp_esme_log_label(smpp_esme), result);
+                }
                 counter_increase(smpp_esme->errors);
                 
                 if(counter_value(smpp_esme->errors) >= SMPP_ESME_MAX_CONSECUTIVE_ERRORS) {
-                    error(0, "SMPP[%s] max consecutive PDU errors, disconnecting", octstr_get_cstr(smpp_esme->system_id));
+                    if (smpp_esme->authenticated) {
+                        error(0, "SMPP[%s] max consecutive PDU errors, disconnecting",
+                              smpp_esme_log_label(smpp_esme));
+                    } else {
+                        debug("smpp.listener.probe", 0,
+                              "SMPP[%s] max consecutive PDU errors before bind, disconnecting",
+                              smpp_esme_log_label(smpp_esme));
+                    }
                     smpp_esme_stop_listening(smpp_esme);
                     
                     if(!smpp_esme->authenticated) {

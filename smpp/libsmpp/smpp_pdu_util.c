@@ -546,7 +546,7 @@ List *smpp_pdu_msg_to_pdu(SMPPEsme *smpp_esme, Msg *msg)
         gw_strftime(submit_date_c_str, sizeof(submit_date_c_str), "%y%m%d%H%M%S", &tm_tmp);
         if (dlr_parse_result == -1)
         {
-            error(0, "[%s] DLR Parsing Failed for %s. Please Report", octstr_get_cstr(smpp_esme->system_id), octstr_get_cstr(msg->sms.msgdata));
+            error(0, "[%s] DLR Parsing Failed for %s. Please Report", smpp_esme_log_label(smpp_esme), octstr_get_cstr(msg->sms.msgdata));
             tm_tmp = gw_localtime(msg->sms.time);
             gw_strftime(done_date_c_str, sizeof(done_date_c_str), "%y%m%d%H%M%S", &tm_tmp);
             smpp_pdu_destroy(pdu);
@@ -582,8 +582,18 @@ List *smpp_pdu_msg_to_pdu(SMPPEsme *smpp_esme, Msg *msg)
         while ((msgid2 = gwlist_extract_first(parts)) != NULL)
         {
             pdu2 = smpp_pdu_create(deliver_sm, 0);
-            //account deliver_sm id source destination route stat err submit_time done_time diff
-            info(0, "deliver_sm %s %s %s %s %s %s %03x %s %s %ld", octstr_get_cstr(smpp_esme->system_id), octstr_get_cstr(msgid2), octstr_get_cstr(pdu->u.deliver_sm.destination_addr), octstr_get_cstr(pdu->u.deliver_sm.source_addr), octstr_get_cstr(msg->sms.smsc_id), octstr_get_cstr(dlr_status), dlr_err, submit_date_c_str, done_date_c_str, (msg->sms.time - dlr_time));
+            /* account deliver_sm msg_id source destination route stat err submit_time done_time age_sec */
+            info(0, "%s deliver_sm %s %s %s %s %s %03x %s %s %ld",
+                 smpp_esme_log_label(smpp_esme),
+                 octstr_get_cstr(msgid2),
+                 octstr_get_cstr(pdu->u.deliver_sm.source_addr),
+                 octstr_get_cstr(pdu->u.deliver_sm.destination_addr),
+                 octstr_get_cstr(msg->sms.smsc_id),
+                 octstr_get_cstr(dlr_status),
+                 dlr_err,
+                 submit_date_c_str,
+                 done_date_c_str,
+                 (long) (msg->sms.time - dlr_time));
             pdu2->u.deliver_sm.esm_class = pdu->u.deliver_sm.esm_class;
             pdu2->u.deliver_sm.source_addr_ton = pdu->u.deliver_sm.dest_addr_ton;
             pdu2->u.deliver_sm.source_addr_npi = pdu->u.deliver_sm.dest_addr_npi;
@@ -773,7 +783,7 @@ Msg *smpp_submit_sm_to_msg(SMPPEsme *smpp_esme, SMPP_PDU *pdu, long *reason)
     {
         error(0, "SMPP[%s]: Malformed destination_addr `%s', may not be empty. "
                  "Discarding MO message.",
-              octstr_get_cstr(smpp_esme->system_id),
+              smpp_esme_log_label(smpp_esme),
               octstr_get_cstr(pdu->u.submit_sm.destination_addr));
         *reason = SMPP_ESME_RINVDSTADR;
         goto error;
@@ -825,7 +835,7 @@ Msg *smpp_submit_sm_to_msg(SMPPEsme *smpp_esme, SMPP_PDU *pdu, long *reason)
         if (pdu->u.submit_sm.esm_class & ESM_CLASS_SUBMIT_UDH_INDICATOR)
         {
             error(0, "SMPP[%s]: sar_msg_ref_num, sar_segment_seqnum, sar_total_segments in conjuction with UDHI used, rejected.",
-                  octstr_get_cstr(smpp_esme->system_id));
+                  smpp_esme_log_label(smpp_esme));
             *reason = SMPP_ESME_RINVTLVVAL;
             goto error;
         }
@@ -845,12 +855,12 @@ Msg *smpp_submit_sm_to_msg(SMPPEsme *smpp_esme, SMPP_PDU *pdu, long *reason)
         int udhl;
         udhl = octstr_get_char(msg->sms.msgdata, 0) + 1;
         debug("bb.sms.smpp", 0, "SMPP[%s]: UDH length read as %d",
-              octstr_get_cstr(smpp_esme->system_id), udhl);
+              smpp_esme_log_label(smpp_esme), udhl);
         if (udhl > octstr_len(msg->sms.msgdata))
         {
             error(0, "SMPP[%s]: Malformed UDH length indicator 0x%03x while message length "
                      "0x%03lx. Discarding MO message.",
-                  octstr_get_cstr(smpp_esme->system_id),
+                  smpp_esme_log_label(smpp_esme),
                   udhl, octstr_len(msg->sms.msgdata));
             *reason = SMPP_ESME_RINVESMCLASS;
             goto error;
@@ -935,7 +945,7 @@ Msg *smpp_data_sm_to_msg(SMPPEsme *smpp_esme, SMPP_PDU *pdu, long *reason)
     {
         error(0, "SMPP[%s]: Malformed destination_addr `%s', may not be empty. "
                  "Discarding MO message.",
-              octstr_get_cstr(smpp_esme->system_id),
+              smpp_esme_log_label(smpp_esme),
               octstr_get_cstr(pdu->u.data_sm.destination_addr));
         *reason = SMPP_ESME_RINVDSTADR;
         goto error;
@@ -979,7 +989,7 @@ Msg *smpp_data_sm_to_msg(SMPPEsme *smpp_esme, SMPP_PDU *pdu, long *reason)
         if (pdu->u.data_sm.esm_class & ESM_CLASS_SUBMIT_UDH_INDICATOR)
         {
             error(0, "SMPP[%s]: sar_msg_ref_num, sar_segment_seqnum, sar_total_segments in conjuction with UDHI used, rejected.",
-                  octstr_get_cstr(smpp_esme->system_id));
+                  smpp_esme_log_label(smpp_esme));
             *reason = SMPP_ESME_RINVTLVVAL;
             goto error;
         }
@@ -999,12 +1009,12 @@ Msg *smpp_data_sm_to_msg(SMPPEsme *smpp_esme, SMPP_PDU *pdu, long *reason)
         int udhl;
         udhl = octstr_get_char(msg->sms.msgdata, 0) + 1;
         debug("bb.sms.smpp", 0, "SMPP[%s]: UDH length read as %d",
-              octstr_get_cstr(smpp_esme->system_id), udhl);
+              smpp_esme_log_label(smpp_esme), udhl);
         if (udhl > octstr_len(msg->sms.msgdata))
         {
             error(0, "SMPP[%s]: Malformed UDH length indicator 0x%03x while message length "
                      "0x%03lx. Discarding MO message.",
-                  octstr_get_cstr(smpp_esme->system_id),
+                  smpp_esme_log_label(smpp_esme),
                   udhl, octstr_len(msg->sms.msgdata));
             *reason = SMPP_ESME_RINVESMCLASS;
             goto error;

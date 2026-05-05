@@ -79,6 +79,18 @@
 #include "smpp_plugin.h"
 
 
+/* Log tag: bound system_id, else TCP peer IP, else "unbound". Avoids "(null)" before bind. */
+const char *smpp_esme_log_label(SMPPEsme *smpp_esme)
+{
+    if (smpp_esme == NULL)
+        return "?";
+    if (smpp_esme->system_id != NULL && octstr_len(smpp_esme->system_id) > 0)
+        return octstr_get_cstr(smpp_esme->system_id);
+    if (smpp_esme->ip != NULL && octstr_len(smpp_esme->ip) > 0)
+        return octstr_get_cstr(smpp_esme->ip);
+    return "unbound";
+}
+
 SMPPESMEAuthResult *smpp_esme_auth_result_create() {
     SMPPESMEAuthResult *smpp_esme_auth_result = gw_malloc(sizeof(SMPPESMEAuthResult));
     smpp_esme_auth_result->default_smsc = NULL;
@@ -141,7 +153,7 @@ void smpp_esme_cleanup(SMPPEsme *smpp_esme) {
 
     smpp_esme_stop_listening(smpp_esme);
 
-    debug("smpp.esme.cleanup", 0, "SMPP[%s] Adding %ld to cleanup queue", octstr_get_cstr(smpp_esme->system_id), smpp_esme->id);
+    debug("smpp.esme.cleanup", 0, "SMPP[%s] Adding %ld to cleanup queue", smpp_esme_log_label(smpp_esme), smpp_esme->id);
     smpp_esme->connected = 0;
     gwlist_append_unique(smpp_esme_data->cleanup_queue, smpp_esme, smpp_esme_compare);
 }
@@ -473,7 +485,10 @@ SMPPESMEAuthResult *smpp_esme_auth(SMPPServer *smpp_server, Octstr *system_id, O
     if(smpp_auth_result) {
         if(octstr_len(smpp_auth_result->allowed_ips)) {
             if(connect_denied(smpp_auth_result->allowed_ips, smpp_esme->ip)) {
-                error(0, "SMPP[%s] denying bind due to non-allowed IP (%s vs %s)", octstr_get_cstr(system_id), octstr_get_cstr(smpp_auth_result->allowed_ips), octstr_get_cstr(smpp_esme->ip));
+                error(0, "SMPP[%s] denying bind due to non-allowed IP (%s vs %s)",
+                      (system_id != NULL && octstr_len(system_id) > 0) ? octstr_get_cstr(system_id) : "?",
+                      octstr_get_cstr(smpp_auth_result->allowed_ips),
+                      smpp_esme_log_label(smpp_esme));
                 smpp_esme_auth_result_destroy(smpp_auth_result);
                 smpp_auth_result = NULL;
             }
@@ -532,20 +547,20 @@ SMPPEsme *smpp_esme_find_best_receiver(SMPPServer *smpp_server, Octstr *system_i
             if (smpp_esme->connected && (smpp_esme->bind_type & SMPP_ESME_RECEIVE)) {
                 current = counter_value(smpp_esme->outbound_queued);
                 limit = smpp_esme->max_open_acks - current;
-                debug("smpp.esme.find.best.receiver", 0, "SMPP[%s] has %ld/%ld in queues (%ld)", octstr_get_cstr(smpp_esme->system_id), current, smpp_esme->max_open_acks, limit);
+                debug("smpp.esme.find.best.receiver", 0, "SMPP[%s] has %ld/%ld in queues (%ld)", smpp_esme_log_label(smpp_esme), current, smpp_esme->max_open_acks, limit);
                 if (limit > 0) {
                     /* Can only use binds that have space in their queues */
                     current = dict_key_count(smpp_esme->open_acks);
                     limit = smpp_esme->max_open_acks - current;
 
-                    debug("smpp.esme.find.best.receiver", 0, "SMPP[%s] has %ld/%ld open acks pending (%ld)", octstr_get_cstr(smpp_esme->system_id), current, smpp_esme->max_open_acks, limit);
+                    debug("smpp.esme.find.best.receiver", 0, "SMPP[%s] has %ld/%ld open acks pending (%ld)", smpp_esme_log_label(smpp_esme), current, smpp_esme->max_open_acks, limit);
                     if(limit > 0) {
                         gwlist_produce(options, smpp_esme);
                     } else {
-                        debug("smpp.esme.find.best.receiver", 0, "SMPP[%s] Outbound acks are full %ld/%ld", octstr_get_cstr(smpp_esme->system_id), current, smpp_esme->max_open_acks);
+                        debug("smpp.esme.find.best.receiver", 0, "SMPP[%s] Outbound acks are full %ld/%ld", smpp_esme_log_label(smpp_esme), current, smpp_esme->max_open_acks);
                     }
                 } else {
-                    debug("smpp.esme.find.best.receiver", 0, "SMPP[%s] Outbound queue is full %ld/%ld", octstr_get_cstr(smpp_esme->system_id), current, smpp_esme->max_open_acks);
+                    debug("smpp.esme.find.best.receiver", 0, "SMPP[%s] Outbound queue is full %ld/%ld", smpp_esme_log_label(smpp_esme), current, smpp_esme->max_open_acks);
                 }
             }
         }
@@ -643,7 +658,7 @@ void smpp_esme_cleanup_thread(void *arg) {
                 smpp_esme = gwlist_get(smpp_esme_global->binds, j);
 
                 info(0, " -- %s:%ld (%d)-- openacks:%lu inbound:%f,outbound:%f,inbound-queue:%lu,outbound-queue:%lu,inbound-processed:%lu,outbound-processed:%lu",
-                        octstr_get_cstr(smpp_esme->system_id),
+                        smpp_esme_log_label(smpp_esme),
                         smpp_esme->id,
                         smpp_esme->bind_type,
                         dict_key_count(smpp_esme->open_acks),
@@ -672,7 +687,7 @@ void smpp_esme_cleanup_thread(void *arg) {
                             if ((queued_ack->time_sent > 0) && (timediff > smpp_esme->wait_ack_time)) {
                                 dict_remove(smpp_esme->open_acks, ack_key);
 				                queued_ack->smpp_server = smpp_esme->smpp_server;
-                                warning(0, "SMPP[%s] Queued ack %s has expired (diff %ld)", octstr_get_cstr(smpp_esme->system_id), octstr_get_cstr(queued_ack->id), timediff);
+                                warning(0, "SMPP[%s] Queued ack %s has expired (diff %ld)", smpp_esme_log_label(smpp_esme), octstr_get_cstr(queued_ack->id), timediff);
                                 queued_ack->callback(queued_ack, SMPP_ESME_COMMAND_STATUS_WAIT_ACK_TIMEOUT);
                             }
                         }
@@ -682,11 +697,11 @@ void smpp_esme_cleanup_thread(void *arg) {
 
                     if (diff > smpp_esme->enquire_link_interval) {
                         if ((diff / smpp_esme->enquire_link_interval) > 2) {
-                            debug("smpp.esme.cleanup.thread", 0, "SMPP[%s] Has not transmitted anything to us in %ld seconds, disconnecting", octstr_get_cstr(smpp_esme->system_id), diff);
+                            debug("smpp.esme.cleanup.thread", 0, "SMPP[%s] Has not transmitted anything to us in %ld seconds, disconnecting", smpp_esme_log_label(smpp_esme), diff);
                             alive = 0;
                             smpp_esme_cleanup(smpp_esme);
                         } else {
-                            debug("smpp.esme.cleanup.thread", 0, "SMPP[%s] No activity in %ld seconds, sending enquire link", octstr_get_cstr(smpp_esme->system_id), diff);
+                            debug("smpp.esme.cleanup.thread", 0, "SMPP[%s] No activity in %ld seconds, sending enquire link", smpp_esme_log_label(smpp_esme), diff);
                             smpp_queues_send_enquire_link(smpp_esme);
                         }
                     }
@@ -715,16 +730,16 @@ void smpp_esme_cleanup_thread(void *arg) {
                     diff = time(NULL) - smpp_esme->time_last_queue_process;
                     if (diff > SMPP_ESME_CLEANUP_QUEUE_DELAY) {
                         /* No queues and all processed, lets kill it */
-                        debug("smpp.esme.cleanup.thread", 0, "SMPP[%s] destroying expired bind id %ld", octstr_get_cstr(smpp_esme->system_id), smpp_esme->id);
+                        debug("smpp.esme.cleanup.thread", 0, "SMPP[%s] destroying expired bind id %ld", smpp_esme_log_label(smpp_esme), smpp_esme->id);
                         smpp_esme_destroy(smpp_esme);
                     } else {
                         /* Still need to give it a moment */
                         gwlist_produce(replace, smpp_esme);
-                        debug("smpp.esme.cleanup.thread", 0, "SMPP[%s] can't destroy because time has not elapsed (%ld) id %ld", octstr_get_cstr(smpp_esme->system_id), diff, smpp_esme->id);
+                        debug("smpp.esme.cleanup.thread", 0, "SMPP[%s] can't destroy because time has not elapsed (%ld) id %ld", smpp_esme_log_label(smpp_esme), diff, smpp_esme->id);
                     }
                 } else {
                     /* Not finished its queues yet */
-                    debug("smpp.esme.cleanup.thread", 0, "SMPP[%s] can't destroy because queues still exist (%ld) id %ld", octstr_get_cstr(smpp_esme->system_id), queue_depth, smpp_esme->id);
+                    debug("smpp.esme.cleanup.thread", 0, "SMPP[%s] can't destroy because queues still exist (%ld) id %ld", smpp_esme_log_label(smpp_esme), queue_depth, smpp_esme->id);
                     gwlist_produce(replace, smpp_esme);
                 }
             }
@@ -773,7 +788,7 @@ SMPPHTTPCommandResult *smpp_esme_unbind_command(SMPPServer *smpp_server, List *c
                 for(i=0;i<num;i++) {
                     smpp_esme = gwlist_get(smpp_esme_global->binds, i);
                     if(smpp_esme->id == bind_id_num) {
-                        info(0, "SMPP[%s] Disconnecting bind id %ld", octstr_get_cstr(smpp_esme->system_id), bind_id_num);
+                        info(0, "SMPP[%s] Disconnecting bind id %ld", smpp_esme_log_label(smpp_esme), bind_id_num);
                         smpp_queued_pdu = smpp_queued_pdu_create_quick(smpp_esme, unbind, counter_increase(smpp_esme->sequence_number));
                         smpp_queued_pdu->disconnect = 1;
                         smpp_queues_add_outbound(smpp_queued_pdu);
@@ -786,7 +801,7 @@ SMPPHTTPCommandResult *smpp_esme_unbind_command(SMPPServer *smpp_server, List *c
                 num = gwlist_len(smpp_esme_global->binds);
                 for(i=0;i<num;i++) {
                     smpp_esme = gwlist_get(smpp_esme_global->binds, i);
-                    info(0, "SMPP[%s] Disconnecting bind id %ld", octstr_get_cstr(smpp_esme->system_id), smpp_esme->id);
+                    info(0, "SMPP[%s] Disconnecting bind id %ld", smpp_esme_log_label(smpp_esme), smpp_esme->id);
                     smpp_queued_pdu = smpp_queued_pdu_create_quick(smpp_esme, unbind, counter_increase(smpp_esme->sequence_number));
                     smpp_queued_pdu->disconnect = 1;
                     smpp_queues_add_outbound(smpp_queued_pdu);
@@ -1127,7 +1142,7 @@ SMPPEsme *smpp_esme_create() {
 void smpp_esme_destroy(SMPPEsme *smpp_esme) {
     /* system_id is set only after bind; teardown before bind is routine (probes, scanners, failed auth). */
     if (smpp_esme->system_id != NULL && octstr_len(smpp_esme->system_id) > 0) {
-        warning(0, "SMPP[%s] Destroying ESME id:%ld", octstr_get_cstr(smpp_esme->system_id), smpp_esme->id);
+        warning(0, "SMPP[%s] Destroying ESME id:%ld", smpp_esme_log_label(smpp_esme), smpp_esme->id);
     } else {
         debug("smpp.esme.destroy", 0, "Destroying unbound ESME id:%ld peer:%s", smpp_esme->id,
               smpp_esme->ip ? octstr_get_cstr(smpp_esme->ip) : "?");

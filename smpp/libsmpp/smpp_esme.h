@@ -215,6 +215,7 @@ extern "C"
     void smpp_esme_auth_result_destroy(SMPPESMEAuthResult *smpp_esme_auth_result);
 
     SMPPEsme *smpp_esme_create();
+    const char *smpp_esme_log_label(SMPPEsme *smpp_esme);
     void smpp_esme_destroy(SMPPEsme *smpp_esme);
 
     void smpp_esme_init(SMPPServer *smpp_server);

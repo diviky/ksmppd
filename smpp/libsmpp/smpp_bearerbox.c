@@ -245,7 +245,7 @@ void smpp_bearerbox_requeue_routing_done(void *context, SMPPRouteStatus *smpp_ro
     if(smpp_route_status->status == SMPP_ESME_ROK) {
         smpp_esme = smpp_esme_find_best_receiver(smpp_database_msg->smpp_server, smpp_database_msg->msg->sms.service);
         if (smpp_esme) {
-            info(0, "SMPP[%s] Successfully routed message for %s", octstr_get_cstr(smpp_esme->system_id), octstr_get_cstr(smpp_database_msg->msg->sms.receiver));
+            info(0, "SMPP[%s] Successfully routed message for %s", smpp_esme_log_label(smpp_esme), octstr_get_cstr(smpp_database_msg->msg->sms.receiver));
             queued_outbound_pdus = smpp_pdu_msg_to_pdu(smpp_esme, smpp_database_msg->msg);
 
             while ((pdu = gwlist_consume(queued_outbound_pdus)) != NULL) {
@@ -292,7 +292,7 @@ void smpp_bearerbox_routing_done(void *context, SMPPRouteStatus *smpp_route_stat
     if(smpp_route_status->status == SMPP_ESME_ROK) {
         smpp_esme = smpp_esme_find_best_receiver(smpp_bearerbox->smpp_bearerbox_state->smpp_server, smpp_bearerbox_msg->msg->sms.service);
         if (smpp_esme) {
-            info(0, "SMPP[%s] Successfully routed message for %s", octstr_get_cstr(smpp_esme->system_id), octstr_get_cstr(smpp_bearerbox_msg->msg->sms.receiver));
+            info(0, "SMPP[%s] Successfully routed message for %s", smpp_esme_log_label(smpp_esme), octstr_get_cstr(smpp_bearerbox_msg->msg->sms.receiver));
             queued_outbound_pdus = smpp_pdu_msg_to_pdu(smpp_esme, smpp_bearerbox_msg->msg);
 
             while ((queued_outbound_pdus != NULL) && (pdu = gwlist_consume(queued_outbound_pdus)) != NULL) {
