@@ -1125,7 +1125,13 @@ SMPPEsme *smpp_esme_create() {
 }
 
 void smpp_esme_destroy(SMPPEsme *smpp_esme) {
-    warning( 0, "SMPP[%s] Destroying ESME id:%ld ", octstr_get_cstr(smpp_esme->system_id), smpp_esme->id);
+    /* system_id is set only after bind; teardown before bind is routine (probes, scanners, failed auth). */
+    if (smpp_esme->system_id != NULL && octstr_len(smpp_esme->system_id) > 0) {
+        warning(0, "SMPP[%s] Destroying ESME id:%ld", octstr_get_cstr(smpp_esme->system_id), smpp_esme->id);
+    } else {
+        debug("smpp.esme.destroy", 0, "Destroying unbound ESME id:%ld peer:%s", smpp_esme->id,
+              smpp_esme->ip ? octstr_get_cstr(smpp_esme->ip) : "?");
+    }
     smpp_esme_destroy_open_acks(smpp_esme);
     
     counter_destroy(smpp_esme->inbound_queued);
