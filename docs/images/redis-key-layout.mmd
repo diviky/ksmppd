@@ -1,0 +1,24 @@
+flowchart LR
+    subgraph smpp_store["smpp_store primary"]
+        S1[id INCR]
+        S2[queue LIST]
+        S3[esmes SET]
+    end
+
+    subgraph smpp_store_queue["smpp_store_queue fallback"]
+        Q1[id INCR]
+        Q2[queue LIST]
+        Q3[esmes SET]
+    end
+
+    subgraph smpp_queued_pdu["smpp_queued_pdu"]
+        P1[id INCR]
+        P2[system_id lists]
+        P3[esmes SET]
+    end
+
+    subgraph smpp_dlr["smpp_dlr"]
+        D1[id INCR]
+        D2[service lists]
+        D3[esmes SET]
+    end

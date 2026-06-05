@@ -167,7 +167,7 @@ void smpp_bearerbox_add_to_queue(SMPPBearerboxState *smpp_bearerbox_state, SMPPB
     } else {
         if (smpp_bearerbox_state->smpp_server->database_enable_queue) {
             debug("smpp.bearerbox.add.to.queue", 0, "No bearerboxes connected, queuing to database");
-            if (smpp_database_add_message(smpp_bearerbox_state->smpp_server, smpp_bearerbox_msg->msg)) {
+            if (smpp_database_add_queue_message(smpp_bearerbox_state->smpp_server, smpp_bearerbox_msg->msg)) {
                 debug("smpp.bearerbox.add.to.queue", 0, "Message inserted into database.");
                 ok = 1;
             } else {
@@ -679,25 +679,33 @@ void smpp_bearerbox_requeue_thread(void *arg) {
         busy = 0;
         gw_rwlock_rdlock(smpp_bearerbox_state->lock);
         bearerbox = gwlist_search(smpp_bearerbox_state->bearerboxes, NULL, smpp_bearerbox_online);
-        if (bearerbox && !smpp_server->database_store_primary) {
-            stored = smpp_database_get_stored(smpp_server, mt_push, NULL, 0);
-
-            while ((smpp_database_msg = gwlist_consume(stored)) != NULL) {
-                msg = smpp_database_msg->msg;
-
-                if(msg->sms.sms_type == mt_push) {
-                    debug("smpp.bearerbox.requeue.thread", 0, "Got MT message to requeue sender = %s receiver = %s", octstr_get_cstr(smpp_database_msg->msg->sms.sender), octstr_get_cstr(smpp_database_msg->msg->sms.receiver));
-                    smpp_bearerbox_msg = smpp_bearerbox_msg_create(msg, smpp_bearerbox_requeue_result, smpp_database_msg);
-                    smpp_bearerbox_msg->msg = msg_duplicate(msg);
-                    gw_prioqueue_produce(smpp_bearerbox_state->outbound_queue, smpp_bearerbox_msg);
-                    busy = 1;
-                } else {
-                    debug("smpp.bearerbox.requeue.thread", 0, "Unknown message type received %ld, deleting", msg->sms.sms_type);
-                    smpp_database_remove(smpp_database_msg->smpp_server, smpp_database_msg->global_id, 0);
-                    smpp_database_msg_destroy(smpp_database_msg);
-                }
+        if (bearerbox) {
+            stored = NULL;
+            if (smpp_server->database_store_primary) {
+                if (smpp_server->database_enable_queue)
+                    stored = smpp_database_get_queue_stored(smpp_server, mt_push, NULL, 0);
+            } else {
+                stored = smpp_database_get_stored(smpp_server, mt_push, NULL, 0);
             }
-            gwlist_destroy(stored, NULL);
+
+            if (stored) {
+                while ((smpp_database_msg = gwlist_consume(stored)) != NULL) {
+                    msg = smpp_database_msg->msg;
+
+                    if(msg->sms.sms_type == mt_push) {
+                        debug("smpp.bearerbox.requeue.thread", 0, "Got MT message to requeue sender = %s receiver = %s", octstr_get_cstr(smpp_database_msg->msg->sms.sender), octstr_get_cstr(smpp_database_msg->msg->sms.receiver));
+                        smpp_bearerbox_msg = smpp_bearerbox_msg_create(msg, smpp_bearerbox_requeue_result, smpp_database_msg);
+                        smpp_bearerbox_msg->msg = msg_duplicate(msg);
+                        gw_prioqueue_produce(smpp_bearerbox_state->outbound_queue, smpp_bearerbox_msg);
+                        busy = 1;
+                    } else {
+                        debug("smpp.bearerbox.requeue.thread", 0, "Unknown message type received %ld, deleting", msg->sms.sms_type);
+                        smpp_database_remove(smpp_database_msg->smpp_server, smpp_database_msg->global_id, 0);
+                        smpp_database_msg_destroy(smpp_database_msg);
+                    }
+                }
+                gwlist_destroy(stored, NULL);
+            }
         }
         if (bearerbox || smpp_server->database_store_primary) {
             stored = smpp_database_get_stored(smpp_server, mo, NULL, 0);

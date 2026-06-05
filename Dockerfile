@@ -28,8 +28,10 @@ RUN apt-get update && \
     byacc \
     libxml2-dev \
     default-libmysqlclient-dev \
+    libpq-dev \
     libssl-dev \
     libhiredis-dev \
+    libjansson-dev \
     gnulib \
     autopoint \
     texinfo \
@@ -84,8 +86,10 @@ RUN apt-get update && \
     libevent-2.1-7t64 \
     libxml2 \
     libmysqlclient21 \
+    libpq5 \
     libssl3t64 \
     libhiredis1.1.0 \
+    libjansson4 \
     ca-certificates \
     jq \
     && apt-get clean \

@@ -1,0 +1,48 @@
+flowchart TB
+    subgraph Clients
+        ESME[ESME SMPP clients]
+        EXT[External systems]
+        BB[Kannel bearerbox / SMSC]
+    end
+
+    subgraph KSMPPD
+        AUTH[Auth / bind]
+        ROUTE[Routing]
+        BILL[Billing / credit]
+        QUEUE[Queue layer]
+        BBTH[Bearerbox threads]
+        POLL[ESME poll thread]
+    end
+
+    subgraph MySQL["MySQL — auth / routes"]
+        U[(smpp_user)]
+        R[(smpp_route)]
+        V[(smpp_version)]
+    end
+
+    subgraph Redis["Redis — queues"]
+        S[(smpp_store:*)]
+        SQ[(smpp_store_queue:*)]
+        P[(smpp_queued_pdu:*)]
+        D[(smpp_dlr:*)]
+    end
+
+    ESME --> AUTH
+    ESME --> ROUTE
+    ESME --> POLL
+    BB --> BBTH
+
+    AUTH --> U
+    ROUTE --> R
+    BILL --> U
+
+    QUEUE --> S
+    QUEUE --> SQ
+    QUEUE --> P
+    QUEUE --> D
+
+    EXT -->|LPOP / LPUSH| S
+    EXT -->|LPUSH DLRs| D
+
+    BBTH --> QUEUE
+    POLL --> QUEUE

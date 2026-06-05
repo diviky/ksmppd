@@ -115,10 +115,14 @@ extern "C" {
         Octstr *database_config;
         Octstr *database_user_table;
         Octstr *database_store_table;
+        Octstr *database_queue_store_table;
         Octstr *database_dlr_table;
         Octstr *database_pdu_table;
         Octstr *database_route_table;
         Octstr *database_version_table;
+        Octstr *database_queue_type;
+        Octstr *database_queue_config;
+        Octstr *database_queue_inflight_table;
         
         int database_enable_queue;
         int database_store_primary;

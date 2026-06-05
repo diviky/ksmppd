@@ -91,7 +91,28 @@ I have created a number of example configurations in this repository located und
 * http-auth-database-routing uses an HTTP request to authenticate ESME's and a database for routing
 * http-only uses HTTP for both authentication and routing.
 
-If using a database in any of the above examples, you will need to create the table schemas at a minimum located under database-schemas in this repository.
+If using a database in any of the above examples, you will need to create the table schemas at a minimum located under `database-schemas/` in this repository (MySQL or PostgreSQL).
+
+Supported relational backends: **MySQL** (`database-type=mysql`) and **PostgreSQL** (`database-type=postgres`, `postgresql`, or `pgsql`). PostgreSQL requires Kannel built with libpq (`--with-pgsql`) and the **pgcrypto** extension for password hashing.
+
+### Redis queue backend (hybrid with MySQL or PostgreSQL)
+
+KSMPPD can store queue data (messages, PDUs, DLRs) in Redis while keeping MySQL for authentication, routing, and user tables. Configure:
+
+```
+database-type=mysql
+database-config=demo
+database-queue-type=redis
+database-queue-config=redis-queue
+```
+
+Use `database-type=postgres` with a `group=pgsql-connection` block for PostgreSQL auth/routing instead of MySQL.
+
+Add a matching `group=redis-connection` block (see `example-configurations/mysql-auth-redis-queue/` and `database-schemas/redis/keys.md`). Kannel must be built with `--with-redis`. Redis **6.2+** is required. The build also requires **jansson**.
+
+When `database-store-primary=1` is combined with bearerbox fallback (`database-enable-queue=1`), use separate stores: `database-store-table` (default `smpp_store`) for store-primary MT and MO, and `database-queue-store-table` (default `smpp_store_queue`) for messages queued while the SMSC/bearerbox is offline.
+
+See [docs/mysql-redis-flow.md](docs/mysql-redis-flow.md) for architecture and flow diagrams (MySQL-only, hybrid Redis, and store-primary modes).
 
 There are commands available via the built in HTTP server which allow you to perform certain tasks. Appending ".xml" to commands will produce output in XML format.
 

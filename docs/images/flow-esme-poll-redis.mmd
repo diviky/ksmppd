@@ -1,0 +1,20 @@
+flowchart TD
+    POLL[ESME poll thread] --> ESME[For each bound ESME]
+    ESME --> PDU[get_stored_pdu]
+    PDU --> PDUT[(smpp_queued_pdu:system_id)]
+    PDUT -->|LPOP| DELIVER1[Deliver PDU]
+
+    ESME --> DLR[get_dlrs]
+    DLR --> DLRT[(smpp_dlr:service)]
+    DLRT -->|LPOP| DELIVER2[Build DLR PDU]
+
+    ESME --> MO[get_stored report_mo]
+    MO --> STORET[(smpp_store:queue)]
+    STORET -->|LPOP + filter| DELIVER3[Deliver MO]
+
+    FAIL{Temporary failure?}
+    DELIVER1 --> FAIL
+    DELIVER2 --> FAIL
+    DELIVER3 --> FAIL
+    FAIL -->|yes| RPUSH[LPUSH back to list]
+    FAIL -->|no| ACK[remove / processed]

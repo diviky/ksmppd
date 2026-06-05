@@ -1,0 +1,18 @@
+flowchart TD
+    SUB[ESME submit_sm] --> ROUTE[Route lookup — MySQL smpp_route]
+    ROUTE --> CREDIT{Deduct credit? — smpp_user}
+    CREDIT --> MODE{database-store-primary?}
+
+    MODE -->|yes| ACK1[ACK immediately]
+    ACK1 --> ADD1[add_message]
+    ADD1 --> STORE[(smpp_store)]
+
+    MODE -->|no| BBADD[bearerbox_add_message]
+    BBADD --> BBON{Bearerbox online?}
+    BBON -->|yes| SMSC[Forward to SMSC]
+    BBON -->|no| ENQ{database-enable-queue?}
+    ENQ -->|yes| ADDQ[add_queue_message]
+    ADDQ --> QSTORE[(smpp_store_queue)]
+    ENQ -->|no| REJECT[Reject RSYSERR]
+
+    EXT[External pickup store-primary] -->|LPOP or SELECT| STORE

@@ -63,7 +63,21 @@
 #ifndef SMPP_DATABASE_H
 #define SMPP_DATABASE_H
 
+#include "gwlib/gwlib.h"
+#include "gwlib/dbpool.h"
+#include "gw/msg.h"
+#include "gw/load.h"
+#include "smpp_server.h"
+#include "smpp_bearerbox.h"
+#include "smpp_esme.h"
+#include "smpp_queued_pdu.h"
+
 #define SMPP_DATABASE_BATCH_LIMIT 1000
+
+/* Which physical store table / Redis key prefix to use for message queue I/O */
+#define SMPP_DATABASE_STORE_PRIMARY         0  /* database-store-table (store-primary MT, MO) */
+#define SMPP_DATABASE_STORE_BEARERBOX_QUEUE 1  /* database-queue-store-table (SMSC/bearerbox fallback) */
+#define SMPP_DATABASE_STORE_AUTO           -1  /* derive table from sms_type / store-primary flags */
 
 #ifdef __cplusplus
 extern "C" {
@@ -73,15 +87,16 @@ extern "C" {
         unsigned long global_id;
         SMPPServer *smpp_server;
         long wakeup_thread_id;
+        Octstr *store_table;
     } SMPPDatabaseMsg;
     
     
     
-    typedef struct {
+    typedef struct SMPPDatabase {
         SMPPESMEAuthResult *(*authenticate) (void *context, Octstr *system_id, Octstr *password);
-        int (*add_message)(SMPPServer *context, Msg *msg);      
+        int (*add_message)(SMPPServer *context, Msg *msg, int store_kind);
         int (*add_pdu)(SMPPServer *context, SMPPQueuedPDU *smpp_queued_pdu);      
-        List *(*get_stored)(SMPPServer *context, long sms_type, Octstr *service, long limit);
+        List *(*get_stored)(SMPPServer *context, long sms_type, Octstr *service, long limit, int store_kind);
         List *(*get_dlrs)(SMPPServer *context, Octstr *service, long limit);
         List *(*get_stored_pdu)(SMPPServer *context, Octstr *service, long limit);
         List *(*get_routes)(SMPPServer *context, int direction, Octstr *service);
@@ -91,8 +106,11 @@ extern "C" {
         List *(*get_esmes_with_queued)(SMPPServer *smpp_server);
         void (*shutdown)(SMPPServer *context);
         void *context;
+        void *queue_context;
         Dict *pending_pdu;
         Dict *pending_msg;
+        Dict *pending_msg_store;
+        enum db_type sql_dialect;
         
     } SMPPDatabase;
     
@@ -108,12 +126,21 @@ extern "C" {
     void smpp_database_shutdown(SMPPServer *smpp_server);
     
     void *smpp_database_mysql_init(SMPPServer *smpp_server);
+#ifdef HAVE_PGSQL
+    void *smpp_database_pgsql_init(SMPPServer *smpp_server);
+#endif
+    int smpp_database_redis_queue_attach(SMPPServer *smpp_server, SMPPDatabase *smpp_database);
     
     SMPPESMEAuthResult *smpp_database_auth(SMPPServer *smpp_server, Octstr *username, Octstr *password);
     
+    Octstr *smpp_database_store_table_name(SMPPServer *smpp_server, int store_kind);
+    Octstr *smpp_database_get_stored_table_name(SMPPServer *smpp_server, long sms_type);
+    
     int smpp_database_add_message(SMPPServer *smpp_server, Msg *msg);
+    int smpp_database_add_queue_message(SMPPServer *smpp_server, Msg *msg);
     int smpp_database_add_pdu(SMPPServer *smpp_server, SMPPQueuedPDU *smpp_queued_pdu);
     List *smpp_database_get_stored(SMPPServer *smpp_server, long sms_type, Octstr *service, long limit);
+    List *smpp_database_get_queue_stored(SMPPServer *smpp_server, long sms_type, Octstr *service, long limit);
     List *smpp_database_get_dlrs(SMPPServer *smpp_server, Octstr *service, long limit);
     List *smpp_database_get_stored_pdu(SMPPServer *smpp_server, Octstr *service, long limit);
     List *smpp_database_get_routes(SMPPServer *smpp_server, int direction, Octstr *service);

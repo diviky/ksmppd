@@ -1,0 +1,16 @@
+flowchart TD
+    LOOP[Bearerbox requeue thread] --> BBON{Bearerbox online?}
+    BBON -->|no| WAIT[Sleep / retry]
+    BBON -->|yes| MODE{store-primary?}
+
+    MODE -->|yes + enable-queue| GETQ[get_queue_stored mt_push]
+    GETQ --> QSTORE[(smpp_store_queue)]
+    QSTORE --> REQUEUE[Outbound queue → SMSC]
+    REQUEUE -->|success| DEL[remove global_id]
+
+    MODE -->|no| GETS[get_stored mt_push]
+    GETS --> LEGACY[(smpp_store_queue or smpp_store)]
+
+    BBON --> MO[get_stored mo]
+    MO --> PRIMARY[(smpp_store primary)]
+    PRIMARY --> ROUTE[Route to ESME]

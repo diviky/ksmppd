@@ -1,0 +1,41 @@
+flowchart TB
+    subgraph Clients
+        ESME[ESME submit_sm]
+        EXT[External MT pickup / DLR inject]
+        BB[Kannel bearerbox optional]
+    end
+
+    subgraph KSMPPD["KSMPPD database-store-primary=1"]
+        ACK[ACK immediately with message_id]
+        ROUTE[Route + billing via MySQL]
+        STORE[add_message → primary store]
+        FALL[add_queue_message → fallback store]
+        POLL[Poll DLRs + MO to ESME]
+    end
+
+    subgraph MySQL["MySQL"]
+        U[(smpp_user)]
+        R[(smpp_route)]
+    end
+
+    subgraph Store["Queue backend MySQL or Redis"]
+        PRIMARY[(smpp_store<br/>store-primary MT + MO)]
+        QUEUE[(smpp_store_queue<br/>SMSC fallback only)]
+        DLR[(smpp_dlr)]
+    end
+
+    ESME --> ROUTE
+    ROUTE --> U
+    ROUTE --> R
+    ROUTE --> ACK
+    ACK --> STORE
+    STORE --> PRIMARY
+
+    BB -->|offline + enable-queue| FALL
+    FALL --> QUEUE
+    BB -->|reconnect| QUEUE
+
+    EXT -->|LPOP MT| PRIMARY
+    EXT -->|LPUSH DLR| DLR
+    POLL --> DLR
+    POLL --> PRIMARY

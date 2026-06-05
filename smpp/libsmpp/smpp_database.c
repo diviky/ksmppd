@@ -62,6 +62,7 @@
 
 #include "gwlib/gwlib.h"
 #include "gw/msg.h"
+#include "gw/sms.h"
 #include "gw/load.h"
 #include "gw/smsc/smpp_pdu.h"
 #include "smpp_server.h"
@@ -71,19 +72,36 @@
 #include "smpp_database.h"
 
 SMPPESMEAuthResult *smpp_database_mysql_auth(SMPPServer *smpp_server, Octstr *username, Octstr *mysql);
-List *smpp_database_mysql_get_stored(SMPPServer *smpp_server, long sms_type, Octstr *service);
+List *smpp_database_mysql_get_stored(SMPPServer *smpp_server, long sms_type, Octstr *service, long limit, int store_kind);
 
 SMPPDatabaseMsg *smpp_database_msg_create() {
     SMPPDatabaseMsg *smpp_database_msg = gw_malloc(sizeof(SMPPDatabaseMsg));
     smpp_database_msg->global_id = 0;
     smpp_database_msg->msg = NULL;
     smpp_database_msg->wakeup_thread_id = 0;
+    smpp_database_msg->store_table = NULL;
     return smpp_database_msg;
 }
 
 void smpp_database_msg_destroy(SMPPDatabaseMsg *smpp_database_msg) {
     msg_destroy(smpp_database_msg->msg);
+    octstr_destroy(smpp_database_msg->store_table);
     gw_free(smpp_database_msg);
+}
+
+Octstr *smpp_database_store_table_name(SMPPServer *smpp_server, int store_kind)
+{
+    if (store_kind == SMPP_DATABASE_STORE_BEARERBOX_QUEUE
+            && octstr_len(smpp_server->database_queue_store_table))
+        return octstr_duplicate(smpp_server->database_queue_store_table);
+    return octstr_duplicate(smpp_server->database_store_table);
+}
+
+Octstr *smpp_database_get_stored_table_name(SMPPServer *smpp_server, long sms_type)
+{
+    if (sms_type == mt_push && !smpp_server->database_store_primary)
+        return smpp_database_store_table_name(smpp_server, SMPP_DATABASE_STORE_BEARERBOX_QUEUE);
+    return smpp_database_store_table_name(smpp_server, SMPP_DATABASE_STORE_PRIMARY);
 }
 
 
@@ -104,10 +122,13 @@ SMPPDatabase *smpp_database_create() {
     smpp_database->get_stored = NULL;
     smpp_database->get_stored_pdu = NULL;
     smpp_database->pending_msg = NULL;
+    smpp_database->pending_msg_store = NULL;
     smpp_database->pending_pdu = NULL;
     smpp_database->get_routes = NULL;
     smpp_database->deduct_credit = NULL;
     smpp_database->get_esmes_with_queued = NULL;
+    smpp_database->queue_context = NULL;
+    smpp_database->sql_dialect = DBPOOL_MYSQL;
     
     
     return smpp_database;
@@ -116,7 +137,15 @@ SMPPDatabase *smpp_database_create() {
 int smpp_database_add_message(SMPPServer *smpp_server, Msg *msg) {
     SMPPDatabase *smpp_database = smpp_server->database;
     if(smpp_database->add_message) {
-        return smpp_database->add_message(smpp_server, msg);
+        return smpp_database->add_message(smpp_server, msg, SMPP_DATABASE_STORE_PRIMARY);
+    }
+    return 0;
+}
+
+int smpp_database_add_queue_message(SMPPServer *smpp_server, Msg *msg) {
+    SMPPDatabase *smpp_database = smpp_server->database;
+    if(smpp_database->add_message) {
+        return smpp_database->add_message(smpp_server, msg, SMPP_DATABASE_STORE_BEARERBOX_QUEUE);
     }
     return 0;
 }
@@ -140,7 +169,15 @@ List *smpp_database_get_routes(SMPPServer *smpp_server, int direction, Octstr *s
 List *smpp_database_get_stored(SMPPServer *smpp_server, long sms_type, Octstr *service, long limit) {
     SMPPDatabase *smpp_database = smpp_server->database;
     if(smpp_database->get_stored) {
-        return smpp_database->get_stored(smpp_server, sms_type, service, limit);
+        return smpp_database->get_stored(smpp_server, sms_type, service, limit, SMPP_DATABASE_STORE_AUTO);
+    }
+    return gwlist_create(); /* Caller will destroy */
+}
+
+List *smpp_database_get_queue_stored(SMPPServer *smpp_server, long sms_type, Octstr *service, long limit) {
+    SMPPDatabase *smpp_database = smpp_server->database;
+    if(smpp_database->get_stored) {
+        return smpp_database->get_stored(smpp_server, sms_type, service, limit, SMPP_DATABASE_STORE_BEARERBOX_QUEUE);
     }
     return gwlist_create(); /* Caller will destroy */
 }
@@ -202,6 +239,16 @@ void *smpp_database_init(SMPPServer *smpp_server) {
     if(octstr_case_compare(smpp_server->database_type, octstr_imm("mysql")) == 0) {
         debug("smpp.database.init", 0, "Initialize database type to MySQL");
         return smpp_database_mysql_init(smpp_server);
+    }
+    if(octstr_case_compare(smpp_server->database_type, octstr_imm("postgres")) == 0
+            || octstr_case_compare(smpp_server->database_type, octstr_imm("postgresql")) == 0
+            || octstr_case_compare(smpp_server->database_type, octstr_imm("pgsql")) == 0) {
+#ifdef HAVE_PGSQL
+        debug("smpp.database.init", 0, "Initialize database type to PostgreSQL");
+        return smpp_database_pgsql_init(smpp_server);
+#else
+        panic(0, "PostgreSQL support requires Kannel built with libpq (HAVE_PGSQL)");
+#endif
     }
     
     return NULL;

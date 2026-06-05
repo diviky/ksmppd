@@ -1,0 +1,51 @@
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: ksmppd
+      MYSQL_USER: ksmppduser
+      MYSQL_PASSWORD: ksmppdpass
+    volumes:
+      - ./database-schemas/mysql/tables.sql:/docker-entrypoint-initdb.d/01-tables.sql:ro
+      - ./docker/test/init-users.sql:/docker-entrypoint-initdb.d/02-users.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-prootpass"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  ksmppd-mysql:
+    image: ksmppd:test
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "14010:14010"
+      - "2345:2345"
+    volumes:
+      - ./docker/test/ksmppd-mysql.conf:/etc/ksmppd/ksmppd.conf:ro
+    command: ["/usr/local/bin/ksmppd", "/etc/ksmppd/ksmppd.conf"]
+
+  ksmppd-redis:
+    image: ksmppd:test
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "14011:14010"
+      - "2346:2345"
+    volumes:
+      - ./docker/test/ksmppd-redis.conf:/etc/ksmppd/ksmppd.conf:ro
+    command: ["/usr/local/bin/ksmppd", "/etc/ksmppd/ksmppd.conf"]

@@ -1,0 +1,20 @@
+flowchart TD
+    POLL[ESME poll thread] --> ESME[For each bound ESME]
+    ESME --> PDU[get_stored_pdu]
+    PDU --> PDUT[(MySQL smpp_queued_pdu<br/>SELECT by system_id)]
+    PDUT --> DELIVER1[Deliver PDU]
+
+    ESME --> DLR[get_dlrs]
+    DLR --> DLRT[(MySQL smpp_dlr<br/>SELECT unprocessed)]
+    DLRT --> DELIVER2[Build DLR PDU]
+
+    ESME --> MO[get_stored report_mo]
+    MO --> STORET[(MySQL smpp_store<br/>SELECT by service)]
+    STORET --> DELIVER3[Deliver MO]
+
+    FAIL{Temporary failure?}
+    DELIVER1 --> FAIL
+    DELIVER2 --> FAIL
+    DELIVER3 --> FAIL
+    FAIL -->|yes| KEEP[Leave row / re-fetch]
+    FAIL -->|no| ACK[DELETE or mark processed]

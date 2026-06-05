@@ -88,9 +88,13 @@ SMPPServer *smpp_server_create() {
     smpp_server->database_pdu_table = NULL;
     smpp_server->database_route_table = NULL;
     smpp_server->database_store_table = NULL;
+    smpp_server->database_queue_store_table = NULL;
     smpp_server->database_dlr_table = NULL;
     smpp_server->database_user_table = NULL;
     smpp_server->database_version_table = NULL;
+    smpp_server->database_queue_type = NULL;
+    smpp_server->database_queue_config = NULL;
+    smpp_server->database_queue_inflight_table = NULL;
     
     smpp_server->running_configuration = NULL;
     smpp_server->inbound_queue = NULL;
@@ -129,9 +133,13 @@ void smpp_server_destroy(SMPPServer *smpp_server) {
     octstr_destroy(smpp_server->database_pdu_table);
     octstr_destroy(smpp_server->database_route_table);
     octstr_destroy(smpp_server->database_store_table);
+    octstr_destroy(smpp_server->database_queue_store_table);
     octstr_destroy(smpp_server->database_dlr_table);
     octstr_destroy(smpp_server->database_user_table);
     octstr_destroy(smpp_server->database_version_table);
+    octstr_destroy(smpp_server->database_queue_type);
+    octstr_destroy(smpp_server->database_queue_config);
+    octstr_destroy(smpp_server->database_queue_inflight_table);
     octstr_destroy(smpp_server->config_filename);
     counter_destroy(smpp_server->esme_counter);
     counter_destroy(smpp_server->running_threads);
@@ -231,11 +239,23 @@ int smpp_server_reconfigure(SMPPServer *smpp_server) {
                 smpp_server->database_type = cfg_get(grp, octstr_imm("database-type"));
                 smpp_server->database_config = cfg_get(grp, octstr_imm("database-config"));
                 smpp_server->database_store_table = cfg_get(grp, octstr_imm("database-store-table"));
+                smpp_server->database_queue_store_table = cfg_get(grp, octstr_imm("database-queue-store-table"));
                 smpp_server->database_dlr_table = cfg_get(grp, octstr_imm("database-dlr-table"));
                 smpp_server->database_user_table = cfg_get(grp, octstr_imm("database-user-table"));
                 smpp_server->database_pdu_table = cfg_get(grp, octstr_imm("database-pdu-table"));
                 smpp_server->database_route_table = cfg_get(grp, octstr_imm("database-route-table"));
                 smpp_server->database_version_table = cfg_get(grp, octstr_imm("database-version-table"));
+                smpp_server->database_queue_type = cfg_get(grp, octstr_imm("database-queue-type"));
+                smpp_server->database_queue_config = cfg_get(grp, octstr_imm("database-queue-config"));
+                smpp_server->database_queue_inflight_table = cfg_get(grp, octstr_imm("database-queue-inflight-table"));
+
+                if(octstr_len(smpp_server->database_queue_type)
+                        && octstr_case_compare(smpp_server->database_queue_type, octstr_imm("redis")) == 0) {
+                    if(!octstr_len(smpp_server->database_queue_config)) {
+                        panic(0, "database-queue-type=redis requires 'database-queue-config' linking to a redis-connection group");
+                    }
+                    info(0, "Redis queue backend enabled (config id '%s')", octstr_get_cstr(smpp_server->database_queue_config));
+                }
                 
                 if(!octstr_len(smpp_server->database_type)) {
                     panic(0, "The SMPP server cannot function without a 'database-type' parameter");

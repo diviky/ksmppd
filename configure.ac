@@ -50,6 +50,13 @@ then
         exit 1
 fi
 
+PKG_CHECK_MODULES([jansson], [jansson >= 2.0], with_jansson=yes, with_jansson=no)
+if test "$with_jansson" == "no"
+then
+        AC_MSG_ERROR([jansson library not found (required for Redis queue support)])
+        exit 1
+fi
+
 #check for shtool required to extract platform
 AC_CHECK_PROG(SHTOOL_CHECK, shtool, yes)
 if test x"$SHTOOL_CHECK" != x"yes" ; then

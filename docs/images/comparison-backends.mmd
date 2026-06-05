@@ -1,0 +1,25 @@
+flowchart LR
+    subgraph Hybrid["Hybrid Redis + MySQL"]
+        direction TB
+        H_K[KSMPPD]
+        H_M[(MySQL users routes)]
+        H_R[(Redis stores pdu dlr)]
+        H_K --> H_M
+        H_K --> H_R
+    end
+
+    subgraph MySQLOnly["MySQL only default"]
+        direction TB
+        M_K[KSMPPD]
+        M_M[(MySQL all tables)]
+        M_K --> M_M
+    end
+
+    subgraph StorePrimary["Store primary optional Redis"]
+        direction TB
+        SP_K[KSMPPD]
+        SP_M[(MySQL auth routes)]
+        SP_S[(Store smpp_store + smpp_dlr)]
+        SP_K --> SP_M
+        SP_K --> SP_S
+    end

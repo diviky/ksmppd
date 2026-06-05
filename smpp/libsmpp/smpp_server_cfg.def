@@ -84,12 +84,16 @@ SINGLE_GROUP(ksmppd,
     OCTSTR(database-config)
     OCTSTR(database-user-table)
     OCTSTR(database-store-table)
+    OCTSTR(database-queue-store-table)
     OCTSTR(database-dlr-table)
     OCTSTR(database-enable-queue)
     OCTSTR(database-store-primary)
     OCTSTR(database-pdu-table)
     OCTSTR(database-route-table)
     OCTSTR(database-version-table)
+    OCTSTR(database-queue-type)
+    OCTSTR(database-queue-config)
+    OCTSTR(database-queue-inflight-table)
 
     OCTSTR(default-max-open-acks)
         

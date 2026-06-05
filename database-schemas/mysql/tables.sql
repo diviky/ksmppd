@@ -60,6 +60,46 @@ CREATE TABLE `smpp_store` (
   KEY `sms_type` (`sms_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
+-- Bearerbox/SMSC fallback queue (database-queue-store-table, default smpp_store_queue).
+-- Used when database-enable-queue=1 and no bearerbox is online. Same schema as smpp_store.
+CREATE TABLE `smpp_store_queue` (
+  `global_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `sender` text,
+  `receiver` text,
+  `udhdata` text,
+  `msgdata` text,
+  `time` bigint(20) NOT NULL,
+  `smsc_id` text,
+  `smsc_number` text,
+  `foreign_id` text,
+  `service` text,
+  `account` text,
+  `id` varchar(128) DEFAULT NULL,
+  `sms_type` bigint(20) NOT NULL,
+  `mclass` bigint(20) NOT NULL,
+  `mwi` bigint(20) NOT NULL,
+  `coding` bigint(20) NOT NULL,
+  `compress` bigint(20) NOT NULL,
+  `validity` bigint(20) NOT NULL,
+  `deferred` bigint(20) NOT NULL,
+  `dlr_mask` bigint(20) NOT NULL,
+  `dlr_url` text,
+  `pid` bigint(20) NOT NULL,
+  `alt_dcs` bigint(20) NOT NULL,
+  `rpi` bigint(20) NOT NULL,
+  `charset` text,
+  `boxc_id` text,
+  `binfo` text,
+  `msg_left` bigint(20) NOT NULL,
+  `priority` bigint(20) NOT NULL,
+  `resend_try` bigint(20) NOT NULL,
+  `resend_time` bigint(20) NOT NULL,
+  `meta_data` text,
+  PRIMARY KEY (`global_id`),
+  KEY `service` (`service`(16)),
+  KEY `sms_type` (`sms_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
 -- DLR table for database-store-primary mode: external systems insert DLRs here,
 -- ksmppd polls and delivers to ESMEs. message_id matches submit_sm_resp message_id.
 CREATE TABLE `smpp_dlr` (
@@ -99,3 +139,10 @@ CREATE TABLE `smpp_user` (
   `connect_allow_ip` text,
   PRIMARY KEY (`system_id`)
 ) ENGINE=InnoDB;
+
+-- Schema version tracking (ksmppd runs migrations against this on startup).
+CREATE TABLE `smpp_version` (
+  `component` varchar(54) NOT NULL,
+  `version` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`component`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
