@@ -261,12 +261,12 @@ List *smpp_database_mysql_get_esmes_with_queued(SMPPServer *smpp_server) {
      * Exclude mt_push: in database-store-primary mode these are outbound MT for external
      * pickup, not for delivery to ESME. When bearerbox is used, mt_push are for bearerbox. */
     if(octstr_len(smpp_server->database_dlr_table)) {
-        sql = octstr_format("SELECT LOWER(system_id) FROM %S %s SELECT LOWER(service) FROM %S WHERE sms_type IN (%ld, %ld) %s SELECT LOWER(service) FROM %S",
+        sql = octstr_format("SELECT system_id FROM %S %s SELECT service FROM %S WHERE sms_type IN (%ld, %ld) %s SELECT service FROM %S",
             smpp_server->database_pdu_table, smpp_db_sql_union_keyword(smpp_database),
             smpp_server->database_store_table, (long)mo, (long)report_mo, smpp_db_sql_union_keyword(smpp_database),
             smpp_server->database_dlr_table);
     } else {
-        sql = octstr_format("SELECT LOWER(system_id) FROM %S %s SELECT LOWER(service) FROM %S WHERE sms_type IN (%ld, %ld)",
+        sql = octstr_format("SELECT system_id FROM %S %s SELECT service FROM %S WHERE sms_type IN (%ld, %ld)",
             smpp_server->database_pdu_table, smpp_db_sql_union_keyword(smpp_database),
             smpp_server->database_store_table, (long)mo, (long)report_mo);
     }
@@ -537,7 +537,7 @@ List *smpp_database_mysql_get_dlrs(SMPPServer *smpp_server, Octstr *service, lon
         octstr_format_append(sql, "LOWER(service) = LOWER(%S) AND processed = 0 LIMIT %ld", svc_lit, limit);
         octstr_destroy(svc_lit);
     } else {
-        octstr_format_append(sql, "LOWER(service) = LOWER(?) AND processed = 0 LIMIT %ld", limit);
+        octstr_format_append(sql, "service = ? AND processed = 0 LIMIT %ld", limit);
         gwlist_produce(binds, octstr_duplicate(service));
     }
 
@@ -631,7 +631,11 @@ int smpp_database_mysql_remove_dlr(SMPPServer *smpp_server, unsigned long global
     DBPoolConn *conn;
     int res = 0;
 
-    sql = octstr_format("UPDATE %S SET processed = 1 WHERE global_id = %lu", smpp_server->database_dlr_table, global_id);
+    if (smpp_server->database_dlr_delete_processed) {
+        sql = octstr_format("DELETE FROM %S WHERE global_id = %lu", smpp_server->database_dlr_table, global_id);
+    } else {
+        sql = octstr_format("UPDATE %S SET processed = 1 WHERE global_id = %lu", smpp_server->database_dlr_table, global_id);
+    }
     conn = dbpool_conn_consume(pool);
     if (dbpool_conn_update(conn, sql, NULL) >= 0) {
         res = 1;

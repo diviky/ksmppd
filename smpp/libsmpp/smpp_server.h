@@ -126,6 +126,7 @@ extern "C" {
         
         int database_enable_queue;
         int database_store_primary;
+        int database_dlr_delete_processed;
         
         
         void *database;

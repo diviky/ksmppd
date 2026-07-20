@@ -115,6 +115,7 @@ SMPPServer *smpp_server_create() {
     smpp_server->default_max_open_acks = SMPP_ESME_DEFAULT_MAX_OPEN_ACKS;
     smpp_server->wait_ack_action = SMPP_WAITACK_DISCONNECT;
     smpp_server->database_store_primary = 0;
+    smpp_server->database_dlr_delete_processed = 0;
 
     return smpp_server;
 }
@@ -263,8 +264,12 @@ int smpp_server_reconfigure(SMPPServer *smpp_server) {
                 
                 cfg_get_bool(&smpp_server->database_enable_queue, grp, octstr_imm("database-enable-queue"));
                 cfg_get_bool(&smpp_server->database_store_primary, grp, octstr_imm("database-store-primary"));
+                cfg_get_bool(&smpp_server->database_dlr_delete_processed, grp, octstr_imm("database-dlr-delete-processed"));
                 if(smpp_server->database_store_primary) {
                     info(0, "Database store primary mode: MT messages stored in database, ACK sent immediately");
+                }
+                if(smpp_server->database_dlr_delete_processed) {
+                    info(0, "Processed DLR rows will be deleted instead of marked processed");
                 }
                 
                 smpp_server->database = smpp_database_init(smpp_server);

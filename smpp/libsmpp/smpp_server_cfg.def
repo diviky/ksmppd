@@ -86,6 +86,7 @@ SINGLE_GROUP(ksmppd,
     OCTSTR(database-store-table)
     OCTSTR(database-queue-store-table)
     OCTSTR(database-dlr-table)
+    OCTSTR(database-dlr-delete-processed)
     OCTSTR(database-enable-queue)
     OCTSTR(database-store-primary)
     OCTSTR(database-pdu-table)

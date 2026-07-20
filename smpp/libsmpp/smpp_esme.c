@@ -201,7 +201,7 @@ void smpp_esme_global_destroy(SMPPEsmeGlobal *smpp_esme_global) {
 }
 
 static int smpp_esme_matches(void *a, void *b) {
-    if(octstr_case_compare(a, b) == 0) {
+    if(octstr_compare(a, b) == 0) {
         return 1;
     }
     return 0;
@@ -443,8 +443,6 @@ void smpp_esme_global_add(SMPPServer *smpp_server, SMPPEsme *smpp_esme) {
     SMPPEsmeData *smpp_esme_data = smpp_server->esme_data;
 
     Octstr *key = octstr_duplicate(smpp_esme->system_id);
-    octstr_convert_range(key, 0, octstr_len(key), tolower);
-    octstr_convert_range(smpp_esme->system_id, 0, octstr_len(smpp_esme->system_id), tolower); 
 
     SMPPEsmeGlobal *smpp_global = dict_get(smpp_esme_data->esmes, key);
     if (smpp_global == NULL) {
