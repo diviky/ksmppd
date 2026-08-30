@@ -377,13 +377,22 @@ List *smpp_database_mysql_get_stored(SMPPServer *smpp_server, long sms_type, Oct
     SMPPDatabaseMsg *smpp_database_msg;
 
     long position = 0;
+    int bearerbox_mt_drain = 0;
+    int effective_store_kind = store_kind;
 
     DBPoolConn *conn;
 
     char id[UUID_STR_LEN + 1];
 
-    store_table = (store_kind >= 0)
-            ? smpp_database_store_table_name(smpp_server, store_kind)
+    if (store_kind == SMPP_DATABASE_STORE_BEARERBOX_MT_DRAIN) {
+        bearerbox_mt_drain = 1;
+        effective_store_kind = smpp_server->database_store_primary
+                ? SMPP_DATABASE_STORE_BEARERBOX_QUEUE
+                : SMPP_DATABASE_STORE_AUTO;
+    }
+
+    store_table = (effective_store_kind >= 0)
+            ? smpp_database_store_table_name(smpp_server, effective_store_kind)
             : smpp_database_get_stored_table_name(smpp_server, sms_type);
 
     sql = octstr_format("SELECT global_id, ");
@@ -406,12 +415,26 @@ List *smpp_database_mysql_get_stored(SMPPServer *smpp_server, long sms_type, Oct
     msg_destroy(msg);
 
     octstr_delete(sql, (octstr_len(sql) - 1), 1);
-    octstr_format_append(sql, " FROM %S WHERE sms_type = %ld ", store_table, sms_type);
+    /**
+     * Bearerbox drain must not pick up mt_push rows for ESME accounts that use DB as primary;
+     * JOIN user table and filter with same COALESCE logic as bind-time (NULL column = inherit global).
+     */
+    if (bearerbox_mt_drain && sms_type == mt_push && !octstr_len(service)
+        && octstr_len(smpp_server->database_user_table)) {
+        long inherit = smpp_server->database_store_primary ? 1 : 0;
+        octstr_format_append(sql,
+                             " FROM %S AS s LEFT JOIN %S AS u ON LOWER(u.`system_id`) = LOWER(s.`service`) "
+                             "WHERE s.`sms_type` = %ld AND COALESCE(u.`database_store_primary`, %ld) = 0 ",
+                             store_table, smpp_server->database_user_table, sms_type,
+                             inherit);
+    } else {
+        octstr_format_append(sql, " FROM %S WHERE sms_type = %ld ", store_table, sms_type);
 
-    if(octstr_len(service)) {
-        binds = gwlist_create();
-        octstr_append_cstr(sql, " AND ");
-        smpp_db_sql_append_where_eq(sql, binds, smpp_database, "service", service);
+        if(octstr_len(service)) {
+            binds = gwlist_create();
+            octstr_append_cstr(sql, " AND ");
+            smpp_db_sql_append_where_eq(sql, binds, smpp_database, "service", service);
+        }
     }
 
     List *pending = dict_keys(smpp_database->pending_msg);
@@ -1385,7 +1408,8 @@ SMPPESMEAuthResult *smpp_database_mysql_authenticate(void *context, Octstr *user
             "default_cost, "
             "max_binds, "
             "enable_prepaid_billing, "
-            "connect_allow_ip "
+            "connect_allow_ip, "
+            "database_store_primary "
             " FROM %S WHERE ", smpp_server->database_user_table);
     smpp_db_sql_append_where_eq(sql, binds, smpp_database, "system_id", username);
     smpp_db_sql_append_password_check(sql, binds, smpp_database, password);
@@ -1413,6 +1437,14 @@ SMPPESMEAuthResult *smpp_database_mysql_authenticate(void *context, Octstr *user
         res->enable_prepaid_billing = atoi(octstr_get_cstr(gwlist_get(row, 11)));
         if(octstr_len(gwlist_get(row, 12))) {
             res->allowed_ips = octstr_duplicate(gwlist_get(row, 12));
+        }
+
+        tmp = gwlist_get(row, 13);
+        if (tmp != NULL && octstr_len(tmp)) {
+            int v = atoi(octstr_get_cstr(tmp));
+            if (v == 0 || v == 1) {
+                res->database_store_primary = v;
+            }
         }
 
         tmp = gwlist_get(row, 3);

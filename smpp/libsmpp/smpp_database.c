@@ -71,7 +71,6 @@
 #include "smpp_queued_pdu.h"
 #include "smpp_database.h"
 
-SMPPESMEAuthResult *smpp_database_mysql_auth(SMPPServer *smpp_server, Octstr *username, Octstr *mysql);
 List *smpp_database_mysql_get_stored(SMPPServer *smpp_server, long sms_type, Octstr *service, long limit, int store_kind);
 
 SMPPDatabaseMsg *smpp_database_msg_create() {
@@ -178,6 +177,14 @@ List *smpp_database_get_queue_stored(SMPPServer *smpp_server, long sms_type, Oct
     SMPPDatabase *smpp_database = smpp_server->database;
     if(smpp_database->get_stored) {
         return smpp_database->get_stored(smpp_server, sms_type, service, limit, SMPP_DATABASE_STORE_BEARERBOX_QUEUE);
+    }
+    return gwlist_create(); /* Caller will destroy */
+}
+
+List *smpp_database_get_bearerbox_mt_stored(SMPPServer *smpp_server, long sms_type, Octstr *service, long limit) {
+    SMPPDatabase *smpp_database = smpp_server->database;
+    if(smpp_database->get_stored) {
+        return smpp_database->get_stored(smpp_server, sms_type, service, limit, SMPP_DATABASE_STORE_BEARERBOX_MT_DRAIN);
     }
     return gwlist_create(); /* Caller will destroy */
 }

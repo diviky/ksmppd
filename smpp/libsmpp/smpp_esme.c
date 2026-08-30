@@ -105,6 +105,7 @@ SMPPESMEAuthResult *smpp_esme_auth_result_create() {
     smpp_esme_auth_result->default_cost = 0;
     smpp_esme_auth_result->max_binds = 0;
     smpp_esme_auth_result->enable_prepaid_billing = 0;
+    smpp_esme_auth_result->database_store_primary = SMPP_AUTH_DATABASE_STORE_PRIMARY_INHERIT;
     smpp_esme_auth_result->allowed_ips = NULL;
     smpp_esme_auth_result->alt_charset = NULL;
     
@@ -177,7 +178,8 @@ SMPPEsmeGlobal *smpp_esme_global_create() {
     smpp_esme_global->outbound_processed = counter_create();
     smpp_esme_global->max_binds = 0;
     smpp_esme_global->enable_prepaid_billing = 0;
-    
+    smpp_esme_global->database_store_primary = 0;
+
     smpp_esme_global->mo_counter = counter_create();
     smpp_esme_global->mt_counter = counter_create();
     smpp_esme_global->dlr_counter = counter_create();
@@ -448,6 +450,7 @@ void smpp_esme_global_add(SMPPServer *smpp_server, SMPPEsme *smpp_esme) {
     if (smpp_global == NULL) {
         smpp_global = smpp_esme_global_create();
         smpp_global->system_id = octstr_duplicate(key);
+        smpp_global->database_store_primary = smpp_server->database_store_primary ? 1 : 0;
         dict_put(smpp_esme_data->esmes, key, smpp_global);
     }
     
@@ -456,6 +459,14 @@ void smpp_esme_global_add(SMPPServer *smpp_server, SMPPEsme *smpp_esme) {
     gwlist_produce(smpp_global->binds, smpp_esme);
 
     octstr_destroy(key);
+}
+
+int smpp_esme_effective_database_store_primary(SMPPServer *smpp_server, const SMPPESMEAuthResult *auth_result)
+{
+    if (auth_result != NULL && auth_result->database_store_primary != SMPP_AUTH_DATABASE_STORE_PRIMARY_INHERIT) {
+        return auth_result->database_store_primary ? 1 : 0;
+    }
+    return smpp_server->database_store_primary ? 1 : 0;
 }
 
 SMPPESMEAuthResult *smpp_esme_auth(SMPPServer *smpp_server, Octstr *system_id, Octstr *password, SMPPEsme *smpp_esme) {

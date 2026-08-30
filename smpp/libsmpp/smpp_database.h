@@ -77,6 +77,7 @@
 /* Which physical store table / Redis key prefix to use for message queue I/O */
 #define SMPP_DATABASE_STORE_PRIMARY         0  /* database-store-table (store-primary MT, MO) */
 #define SMPP_DATABASE_STORE_BEARERBOX_QUEUE 1  /* database-queue-store-table (SMSC/bearerbox fallback) */
+#define SMPP_DATABASE_STORE_BEARERBOX_MT_DRAIN 2  /* bearerbox MT requeue; per-account store-primary filter */
 #define SMPP_DATABASE_STORE_AUTO           -1  /* derive table from sms_type / store-primary flags */
 
 #ifdef __cplusplus
@@ -141,6 +142,7 @@ extern "C" {
     int smpp_database_add_pdu(SMPPServer *smpp_server, SMPPQueuedPDU *smpp_queued_pdu);
     List *smpp_database_get_stored(SMPPServer *smpp_server, long sms_type, Octstr *service, long limit);
     List *smpp_database_get_queue_stored(SMPPServer *smpp_server, long sms_type, Octstr *service, long limit);
+    List *smpp_database_get_bearerbox_mt_stored(SMPPServer *smpp_server, long sms_type, Octstr *service, long limit);
     List *smpp_database_get_dlrs(SMPPServer *smpp_server, Octstr *service, long limit);
     List *smpp_database_get_stored_pdu(SMPPServer *smpp_server, Octstr *service, long limit);
     List *smpp_database_get_routes(SMPPServer *smpp_server, int direction, Octstr *service);

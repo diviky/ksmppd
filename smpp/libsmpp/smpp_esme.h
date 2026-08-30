@@ -75,6 +75,9 @@
 #define SMPP_ESME_DEFAULT_ENQUIRE_LINK_INTERVAL 120
 #define SMPP_ESME_DEFAULT_MAX_OPEN_ACKS 500
 
+/** Set on SMPPESMEAuthResult.database_store_primary only: use SMPPServer.database_store_primary at bind. */
+#define SMPP_AUTH_DATABASE_STORE_PRIMARY_INHERIT (-1)
+
 #define SMPP_ESME_UNDEFINED 0
 #define SMPP_ESME_TRANSMIT 1
 #define SMPP_ESME_RECEIVE 2
@@ -99,6 +102,8 @@ extern "C"
         Counter *mo_counter;
         Counter *dlr_counter;
         Counter *error_counter;
+        /** Effective 0/1 after bind: routed MT to DB vs bearerbox (per system_id). */
+        int database_store_primary;
     } SMPPEsmeGlobal;
 
     typedef struct
@@ -132,6 +137,9 @@ extern "C"
         unsigned long simulate_temporary_failure_every;
 
         int enable_prepaid_billing;
+
+        /** SMPP_AUTH_DATABASE_STORE_PRIMARY_INHERIT, 0, or 1 (database MySQL NULL / omitted HTTP = inherit). */
+        int database_store_primary;
 
         Octstr *allowed_ips;
 
@@ -238,6 +246,9 @@ extern "C"
     List *smpp_esme_global_get_queued(SMPPServer *smpp_server);
 
     SMPPESMEAuthResult *smpp_esme_auth(SMPPServer *smpp_server, Octstr *system_id, Octstr *password, SMPPEsme *smpp_esme);
+
+    /** Resolves per-bind override vs `ksmppd` group `database-store-primary`. */
+    int smpp_esme_effective_database_store_primary(SMPPServer *smpp_server, const SMPPESMEAuthResult *auth_result);
 
 #ifdef __cplusplus
 }

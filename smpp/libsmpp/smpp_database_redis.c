@@ -467,6 +467,12 @@ List *smpp_database_redis_get_stored(SMPPServer *smpp_server, long sms_type, Oct
     if (!limit)
         limit = SMPP_DATABASE_BATCH_LIMIT;
 
+    if (store_kind == SMPP_DATABASE_STORE_BEARERBOX_MT_DRAIN) {
+        store_kind = smpp_server->database_store_primary
+                ? SMPP_DATABASE_STORE_BEARERBOX_QUEUE
+                : SMPP_DATABASE_STORE_AUTO;
+    }
+
     store_table = (store_kind >= 0)
             ? smpp_database_store_table_name(smpp_server, store_kind)
             : smpp_database_get_stored_table_name(smpp_server, sms_type);

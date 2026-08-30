@@ -267,7 +267,7 @@ void smpp_queues_submit_routing_done(void *context, SMPPRouteStatus *smpp_route_
             
             smpp_queues_msg_set_dlr_url(smpp_queued_response_pdu->smpp_esme, smpp_queued_response_pdu->msg);
             
-            if(smpp_queued_response_pdu->smpp_esme->smpp_server->database_store_primary) {
+            if(smpp_queued_response_pdu->smpp_esme->smpp_esme_global->database_store_primary) {
                 if(smpp_database_add_message(smpp_queued_response_pdu->smpp_esme->smpp_server, smpp_queued_response_pdu->msg)) {
                     msg_destroy(smpp_queued_response_pdu->msg);
                     smpp_queued_response_pdu->msg = NULL;
@@ -309,7 +309,7 @@ void smpp_queues_submit_routing_done(void *context, SMPPRouteStatus *smpp_route_
 
                 smpp_queues_msg_set_dlr_url(smpp_queued_response_pdu->smpp_esme, smpp_queued_response_pdu->msg);
 
-                if(smpp_queued_response_pdu->smpp_esme->smpp_server->database_store_primary) {
+                if(smpp_queued_response_pdu->smpp_esme->smpp_esme_global->database_store_primary) {
                     if(smpp_database_add_message(smpp_queued_response_pdu->smpp_esme->smpp_server, smpp_queued_response_pdu->msg)) {
                         msg_destroy(smpp_queued_response_pdu->msg);
                         smpp_queued_response_pdu->msg = NULL;
@@ -364,7 +364,7 @@ void smpp_queues_data_sm_routing_done(void *context, SMPPRouteStatus *smpp_route
                         octstr_get_cstr(smpp_queued_response_pdu->msg->sms.receiver),
                         octstr_get_cstr(smpp_queued_response_pdu->msg->sms.smsc_id), octstr_len(smpp_queued_response_pdu->msg->sms.msgdata),submit_date_c_str);
 
-            if(smpp_queued_response_pdu->smpp_esme->smpp_server->database_store_primary) {
+            if(smpp_queued_response_pdu->smpp_esme->smpp_esme_global->database_store_primary) {
                 if(smpp_database_add_message(smpp_queued_response_pdu->smpp_esme->smpp_server, smpp_queued_response_pdu->msg)) {
                     msg_destroy(smpp_queued_response_pdu->msg);
                     smpp_queued_response_pdu->msg = NULL;
@@ -402,7 +402,7 @@ void smpp_queues_data_sm_routing_done(void *context, SMPPRouteStatus *smpp_route
                         octstr_get_cstr(smpp_queued_response_pdu->msg->sms.receiver),
                         octstr_get_cstr(smpp_queued_response_pdu->msg->sms.smsc_id), octstr_len(smpp_queued_response_pdu->msg->sms.msgdata),submit_date_c_str);
 
-                if(smpp_queued_response_pdu->smpp_esme->smpp_server->database_store_primary) {
+                if(smpp_queued_response_pdu->smpp_esme->smpp_esme_global->database_store_primary) {
                     if(smpp_database_add_message(smpp_queued_response_pdu->smpp_esme->smpp_server, smpp_queued_response_pdu->msg)) {
                         msg_destroy(smpp_queued_response_pdu->msg);
                         smpp_queued_response_pdu->msg = NULL;
@@ -836,6 +836,8 @@ void smpp_queues_handle_bind_pdu(SMPPQueuedPDU *smpp_queued_pdu) {
         smpp_queued_pdu->smpp_esme->smpp_esme_global->throughput = auth_result->throughput;
         smpp_queued_pdu->smpp_esme->smpp_esme_global->max_binds = auth_result->max_binds;
         smpp_queued_pdu->smpp_esme->smpp_esme_global->enable_prepaid_billing = auth_result->enable_prepaid_billing;
+        smpp_queued_pdu->smpp_esme->smpp_esme_global->database_store_primary =
+                smpp_esme_effective_database_store_primary(smpp_queued_pdu->smpp_esme->smpp_server, auth_result);
         if(smpp_queued_pdu->smpp_esme->smpp_esme_global->enable_prepaid_billing) {
             info(0, "SMPP[%s] has prepaid billing enabled.", smpp_esme_log_label(smpp_queued_pdu->smpp_esme));
         }

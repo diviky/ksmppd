@@ -137,6 +137,7 @@ CREATE TABLE `smpp_user` (
   `simulate_mo_every` int(10) unsigned NOT NULL,
   `max_binds` int(10) unsigned NOT NULL DEFAULT '0',
   `connect_allow_ip` text,
+  `database_store_primary` tinyint(1) DEFAULT NULL COMMENT 'NULL=inherit ksmppd database-store-primary; 0=bearerbox MT; 1=DB primary',
   PRIMARY KEY (`system_id`)
 ) ENGINE=InnoDB;
 

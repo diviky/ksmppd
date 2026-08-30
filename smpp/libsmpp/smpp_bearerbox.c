@@ -681,12 +681,8 @@ void smpp_bearerbox_requeue_thread(void *arg) {
         bearerbox = gwlist_search(smpp_bearerbox_state->bearerboxes, NULL, smpp_bearerbox_online);
         if (bearerbox) {
             stored = NULL;
-            if (smpp_server->database_store_primary) {
-                if (smpp_server->database_enable_queue)
-                    stored = smpp_database_get_queue_stored(smpp_server, mt_push, NULL, 0);
-            } else {
-                stored = smpp_database_get_stored(smpp_server, mt_push, NULL, 0);
-            }
+            if (!smpp_server->database_store_primary || smpp_server->database_enable_queue)
+                stored = smpp_database_get_bearerbox_mt_stored(smpp_server, mt_push, NULL, 0);
 
             if (stored) {
                 while ((smpp_database_msg = gwlist_consume(stored)) != NULL) {

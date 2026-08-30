@@ -78,6 +78,7 @@ extern "C" {
     struct SMPPPlugin {
         Octstr *id;
         Octstr *args;
+        /** Return value from smpp_esme_auth_result_create(); leave database_store_primary unset (inherit SMPPServer) or set 0/1. */
         SMPPESMEAuthResult *(*authenticate)(SMPPPlugin *smpp_plugin, Octstr *system_id, Octstr *password);
         void (*route_message)(SMPPPlugin *smpp_plugin, int direction, Octstr *smsc_id, Octstr *system_id, Msg *msg, void(*callback)(void *context, SMPPRouteStatus *smpp_route_status), void *context);
         int (*init)(SMPPPlugin *smpp_plugin);

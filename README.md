@@ -22,6 +22,7 @@ What I have tried to do here is implement an SMPP server which connects to the b
 * :white_check_mark: Fully asynchronous 
 * :white_check_mark: submit_sm_resp PDU's only provided once bearerbox or database has accepted storage 
 * :white_check_mark: HTTP routers use a callback mechanism
+* :white_check_mark: Per-account MT persistence versus global `database-store-primary`: nullable `database_store_primary` on the MySQL user row, or HTTP `x-ksmppd-database-store-primary` (omit/NULL inherits the [`ksmppd`](example-configurations/database-store-primary/ksmppd.conf) group flag)
 
 ### TO-DO
 * Embeddable code (almost, just some thread joins to deal with)
